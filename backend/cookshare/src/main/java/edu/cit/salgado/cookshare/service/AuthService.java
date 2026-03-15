@@ -1,13 +1,15 @@
 package edu.cit.salgado.cookshare.service;
 
-import edu.cit.salgado.cookshare.dto.LoginRequest;
-import edu.cit.salgado.cookshare.dto.RegisterRequest;
-import edu.cit.salgado.cookshare.entity.User;
-import edu.cit.salgado.cookshare.repository.UserRepository;
+import java.time.LocalDateTime;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import edu.cit.salgado.cookshare.dto.LoginRequest;
+import edu.cit.salgado.cookshare.dto.LoginResponse;
+import edu.cit.salgado.cookshare.dto.RegisterRequest;
+import edu.cit.salgado.cookshare.entity.User;
+import edu.cit.salgado.cookshare.repository.UserRepository;
 
 @Service
 public class AuthService {
@@ -22,14 +24,14 @@ public class AuthService {
 
     public String register(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return "Email already registered";
-        }
+    if (userRepository.existsByEmail(request.getEmail())) {
+        return "Email already registered";
+    }
 
         User user = new User();
 
-        user.setFirstname(request.getFirstname());
-        user.setLastname(request.getLastname());
+        user.setFirstname(request.getFirstName());
+        user.setLastname(request.getLastName());
         user.setEmail(request.getEmail());
 
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
@@ -41,18 +43,18 @@ public class AuthService {
         return "User registered successfully";
     }
 
-    public String login(LoginRequest request) {
+    
+    public LoginResponse login(LoginRequest request) {
+    User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+    if (user == null) {
+        return new LoginResponse("Invalid credentials", null, null, null);
+    }
 
-        if (user == null) {
-            return "Invalid credentials";
-        }
+    if (passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        return new LoginResponse("Login successful", user.getFirstname(), user.getLastname(), user.getEmail());
+    }
 
-        if (passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            return "Login successful";
-        }
-
-        return "Invalid credentials";
+    return new LoginResponse("Invalid credentials", null, null, null);
     }
 }
