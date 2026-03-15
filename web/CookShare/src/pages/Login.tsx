@@ -23,8 +23,6 @@ function Login() {
         return;
       }
 
-      // Store auth token/user info and redirect
-      localStorage.setItem('user', JSON.stringify({ email }));
       navigate('/dashboard');
     } catch (err) {
       setError('An error occurred. Please try again.');
