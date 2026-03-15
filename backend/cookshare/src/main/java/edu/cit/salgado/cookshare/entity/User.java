@@ -31,7 +31,10 @@ public class User {
     @Column(name = "password_hash")
     private String passwordHash;
 
+    @Column(name = "first_name")
     private String firstname;
+
+    @Column(name = "last_name")
     private String lastname;
 
     private LocalDateTime createdAt;
