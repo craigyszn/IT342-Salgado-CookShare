@@ -111,13 +111,25 @@ export function CreateRecipe() {
       createdAt: new Date().toISOString().split('T')[0],
     };
 
-    const existing = JSON.parse(localStorage.getItem('user_recipes') || '[]');
-    existing.push(newRecipe);
-    localStorage.setItem('user_recipes', JSON.stringify(existing));
-
+    fetch("http://localhost:8081/api/recipes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(newRecipe)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('Failed to save recipe');
+    return res.json();
+  })
+  .then(() => {
     showToast('Recipe created successfully!', 'success');
     setTimeout(() => navigate('/dashboard'), 1000);
-  };
+  })
+  .catch(() => {
+    showToast('Failed to create recipe', 'error');
+  });
+    };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
