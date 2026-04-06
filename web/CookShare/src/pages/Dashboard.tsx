@@ -339,7 +339,46 @@ const Dashboard = () => {
         raw = await spoonacularService.getRandomRecipes(6);
       }
 
-      setRecipes(raw.map(mapRecipe));
+            // Map Spoonacular recipes
+      const spoonacularRecipes = raw.map(mapRecipe);
+
+      // Fetch recipes from your Spring Boot backend
+      let backendRecipes: Recipe[] = [];
+
+      try {
+        const res = await fetch("http://localhost:8081/api/recipes");
+
+        if (res.ok) {
+          const data = await res.json();
+
+          backendRecipes = data.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description,
+            tags: r.tags || [],
+            rating: r.rating || 0,
+            reviewCount: r.reviewCount || 0,
+            prepTime: "N/A",
+            cookTime: r.cookTime || "N/A",
+            difficulty: r.difficulty || "Easy",
+            author: r.author || "User",
+            servings: r.servings || 1,
+            imageUrl: r.image,
+            ingredients: r.ingredients || [],
+            instructions: r.instructions || [],
+            postedDate: r.createdAt,
+            comments: []
+          }));
+        }
+        } catch {
+          console.warn("Backend recipes failed to load");
+        }
+
+        // Merge both recipe sources
+        setRecipes([
+          ...backendRecipes,
+          ...spoonacularRecipes
+        ]);
     } catch {
       setError('Failed to load recipes. Please check your API key or try again.');
     } finally {
