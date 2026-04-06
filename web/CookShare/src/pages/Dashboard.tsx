@@ -1,104 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChefHat,
-  Star,
-  Users,
-  Clock,
-  Plus,
-  Search,
-  LogOut,
-  Settings,
-  User,
+  ChefHat, Star, Users, Clock, Plus, Search,
+  LogOut, Settings, User, Heart, Share2, X,
+  Timer, UtensilsCrossed, MessageCircle, RefreshCw,
 } from 'lucide-react';
-import type { Recipe, Difficulty } from '../types/recipe';
+import type { Recipe, Difficulty, Comment } from '../types/recipe';
 import { authService } from '../services/authService';
+import {
+  spoonacularService,
+  stripHtml,
+  scoreToRating,
+  getDifficulty,
+  type SpoonacularRecipe,
+} from '../services/spoonacularService';
 import '../styles/Dashboard.css';
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-
-const RECIPES: Recipe[] = [
-  {
-    id: 1,
-    title: 'Creamy Garlic Pasta',
-    description: 'A delicious and creamy pasta dish with garlic and parmesan cheese. Perfect for a quick weeknight dinner.',
-    tags: ['Italian', 'Quick', 'Vegetarian'],
-    rating: 4.8,
-    reviewCount: 127,
-    cookTime: '10 mins',
-    difficulty: 'Easy',
-    author: 'Sarah Johnson',
-    servings: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 2,
-    title: 'Rich Chocolate Cake',
-    description: "Decadent chocolate cake with a moist crumb and rich chocolate frosting. A chocolate lover's dream!",
-    tags: ['Chocolate', 'Baking', 'Party'],
-    rating: 4.9,
-    reviewCount: 203,
-    cookTime: '25 mins',
-    difficulty: 'Medium',
-    author: 'Michael Chen',
-    servings: 8,
-    imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 3,
-    title: 'Mediterranean Quinoa Salad',
-    description: 'Fresh and healthy quinoa salad with Mediterranean flavors. Perfect for meal prep or as a light lunch.',
-    tags: ['Healthy', 'Vegan', 'Mediterranean'],
-    rating: 4.7,
-    reviewCount: 89,
-    cookTime: '15 mins',
-    difficulty: 'Easy',
-    author: 'Emma Wilson',
-    servings: 6,
-    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 4,
-    title: 'Grilled Lemon Herb Chicken',
-    description: 'Juicy grilled chicken marinated in lemon and herbs. A healthy and flavorful main dish.',
-    tags: ['Grilled', 'Healthy', 'Protein'],
-    rating: 4.6,
-    reviewCount: 156,
-    cookTime: '15 mins',
-    difficulty: 'Easy',
-    author: 'David Martinez',
-    servings: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 5,
-    title: 'Homemade Sushi Rolls',
-    description: 'Learn to make delicious sushi rolls at home with fresh ingredients. Easier than you think!',
-    tags: ['Japanese', 'Sushi', 'Seafood'],
-    rating: 4.5,
-    reviewCount: 94,
-    cookTime: '30 mins',
-    difficulty: 'Medium',
-    author: 'Yuki Tanaka',
-    servings: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 6,
-    title: 'Artisan Pizza Margherita',
-    description: 'Classic Italian pizza with homemade dough, fresh tomatoes, mozzarella, and basil.',
-    tags: ['Italian', 'Homemade', 'Vegetarian'],
-    rating: 4.9,
-    reviewCount: 178,
-    cookTime: '90 mins',
-    difficulty: 'Medium',
-    author: 'Giovanni Rossi',
-    servings: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&auto=format&fit=crop',
-  },
-];
+// ── Category map ──────────────────────────────────────────────────────────────
 
 const CATEGORIES = ['All', 'Pasta', 'Dessert', 'Salad', 'Main Course', 'Asian', 'Pizza'];
+
+const CATEGORY_MAP: Record<string, string> = {
+  Pasta: 'pasta',
+  Dessert: 'dessert cake cookies',
+  Salad: 'salad',
+  'Main Course': 'chicken beef dinner',
+  Asian: 'asian stir fry noodles',
+  Pizza: 'pizza',
+};
+
+// ── Mapper: Spoonacular → our Recipe type ─────────────────────────────────────
+
+const mapRecipe = (r: SpoonacularRecipe): Recipe => ({
+  id: r.id,
+  title: r.title,
+  description: stripHtml(r.summary).slice(0, 180) + '...',
+  tags: [
+    ...r.dishTypes.slice(0, 2).map((t) => t.charAt(0).toUpperCase() + t.slice(1)),
+    ...r.diets.slice(0, 1).map((d) => d.charAt(0).toUpperCase() + d.slice(1)),
+  ],
+  rating: scoreToRating(r.spoonacularScore),
+  reviewCount: r.aggregateLikes,
+  prepTime: r.preparationMinutes > 0 ? `${r.preparationMinutes} mins` : 'N/A',
+  cookTime: r.cookingMinutes > 0 ? `${r.cookingMinutes} mins` : `${r.readyInMinutes} mins`,
+  difficulty: getDifficulty(r.readyInMinutes),
+  author: r.creditsText || 'Spoonacular',
+  servings: r.servings,
+  imageUrl: r.image,
+  ingredients: r.extendedIngredients?.map((i) => i.original) ?? [],
+  instructions:
+    r.analyzedInstructions?.[0]?.steps.map((s) => s.step) ?? ['See full recipe for instructions.'],
+  postedDate: new Date().toISOString().split('T')[0],
+  comments: [],
+});
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -111,8 +65,8 @@ const DifficultyBadge = ({ difficulty }: { difficulty: Difficulty }) => {
   return <span className={classMap[difficulty]}>{difficulty}</span>;
 };
 
-const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
-  <div className="recipe-card">
+const RecipeCard = ({ recipe, onClick }: { recipe: Recipe; onClick: () => void }) => (
+  <div className="recipe-card" onClick={onClick}>
     <div className="recipe-card__image-wrapper">
       <img src={recipe.imageUrl} alt={recipe.title} className="recipe-card__image" />
     </div>
@@ -149,16 +103,182 @@ const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
   </div>
 );
 
-const StatCard = ({
-  iconClass,
-  icon,
-  value,
-  label,
-}: {
-  iconClass: string;
-  icon: React.ReactNode;
-  value: string;
-  label: string;
+// ── Recipe Modal ──────────────────────────────────────────────────────────────
+
+const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) => {
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<Comment[]>(recipe.comments);
+
+  const handlePostComment = () => {
+    if (!commentText.trim()) return;
+    const user = authService.getUser();
+    const newComment: Comment = {
+      id: Date.now(),
+      author: user ? `${user.firstName} ${user.lastName}` : 'Anonymous',
+      text: commentText.trim(),
+      date: 'Just now',
+    };
+    setComments([newComment, ...comments]);
+    setCommentText('');
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        {/* Image */}
+        <div className="modal__image-wrapper">
+          <img src={recipe.imageUrl} alt={recipe.title} className="modal__image" />
+          <div className="modal__image-actions">
+            <button className="modal__icon-btn"><Heart size={16} /></button>
+            <button className="modal__icon-btn"><Share2 size={16} /></button>
+          </div>
+        </div>
+
+        {/* Close */}
+        <button className="modal__close" onClick={onClose}>
+          <X size={16} />
+        </button>
+
+        {/* Body */}
+        <div className="modal__body">
+          <div className="modal__header">
+            <h2 className="modal__title">{recipe.title}</h2>
+            <DifficultyBadge difficulty={recipe.difficulty} />
+          </div>
+          <p className="modal__description">{recipe.description}</p>
+
+          {/* Meta */}
+          <div className="modal__meta">
+            <div className="modal__meta-item">
+              <Timer size={18} color="#f97316" />
+              <div>
+                <span className="modal__meta-label">Prep Time</span>
+                <span className="modal__meta-value">{recipe.prepTime}</span>
+              </div>
+            </div>
+            <div className="modal__meta-item">
+              <UtensilsCrossed size={18} color="#f97316" />
+              <div>
+                <span className="modal__meta-label">Cook Time</span>
+                <span className="modal__meta-value">{recipe.cookTime}</span>
+              </div>
+            </div>
+            <div className="modal__meta-item">
+              <Users size={18} color="#f97316" />
+              <div>
+                <span className="modal__meta-label">Servings</span>
+                <span className="modal__meta-value">{recipe.servings}</span>
+              </div>
+            </div>
+            <div className="modal__meta-item">
+              <Star size={18} color="#f97316" fill="#f97316" />
+              <div>
+                <span className="modal__meta-label">Rating</span>
+                <span className="modal__meta-value">{recipe.rating} ({recipe.reviewCount})</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="modal__tags">
+            {recipe.tags.map((tag) => (
+              <span key={tag} className="modal__tag">{tag}</span>
+            ))}
+          </div>
+
+          <div className="modal__divider" />
+
+          {/* Ingredients */}
+          <h3 className="modal__section-title">Ingredients</h3>
+          <ul className="modal__ingredient-list">
+            {recipe.ingredients.map((ing, i) => (
+              <li key={i} className="modal__ingredient-item">
+                <span className="modal__ingredient-dot" />
+                {ing}
+              </li>
+            ))}
+          </ul>
+
+          <div className="modal__divider" />
+
+          {/* Instructions */}
+          <h3 className="modal__section-title">Instructions</h3>
+          <ol className="modal__instruction-list">
+            {recipe.instructions.map((step, i) => (
+              <li key={i} className="modal__instruction-item">
+                <span className="modal__step-number">{i + 1}</span>
+                {step}
+              </li>
+            ))}
+          </ol>
+
+          <div className="modal__divider" />
+
+          {/* Rate */}
+          <h3 className="modal__section-title">Rate this recipe</h3>
+          <div className="modal__stars">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                className={`modal__star${(hoverRating || userRating) >= star ? ' modal__star--active' : ''}`}
+                onClick={() => setUserRating(star)}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+              >
+                <Star size={28} fill={(hoverRating || userRating) >= star ? '#f97316' : 'none'} />
+              </button>
+            ))}
+          </div>
+
+          <div className="modal__divider" />
+
+          {/* Comments */}
+          <h3 className="modal__section-title">
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <MessageCircle size={20} />
+              Comments ({comments.length})
+            </span>
+          </h3>
+          <div className="modal__comment-input-row">
+            <textarea
+              className="modal__comment-input"
+              placeholder="Share your thoughts about this recipe..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              rows={3}
+            />
+            <button className="modal__comment-submit" onClick={handlePostComment}>
+              Post Comment
+            </button>
+          </div>
+          {comments.length > 0 && (
+            <div className="modal__comment-list">
+              {comments.map((c) => (
+                <div key={c.id} className="modal__comment">
+                  <div className="modal__comment-header">
+                    <span className="modal__comment-author">{c.author}</span>
+                    <span className="modal__comment-date">{c.date}</span>
+                  </div>
+                  <p className="modal__comment-text">{c.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="modal__footer">
+            Recipe by <strong>{recipe.author}</strong> • Posted on {recipe.postedDate}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StatCard = ({ iconClass, icon, value, label }: {
+  iconClass: string; icon: React.ReactNode; value: string; label: string;
 }) => (
   <div className="stat-card">
     <div className={`stat-card__icon ${iconClass}`}>{icon}</div>
@@ -175,7 +295,13 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [noResults, setNoResults] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const user = authService.getUser();
   const initials = user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U';
@@ -184,25 +310,59 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     authService.logout();
-    navigate('/login');
+    navigate('/');
   };
 
-  const filtered = RECIPES.filter((r) => {
-    const matchesCategory =
-      activeCategory === 'All' ||
-      r.tags.some((t) => t.toLowerCase().includes(activeCategory.toLowerCase())) ||
-      r.title.toLowerCase().includes(activeCategory.toLowerCase());
-    const matchesSearch =
-      search.trim() === '' ||
-      r.title.toLowerCase().includes(search.toLowerCase()) ||
-      r.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
+  // ── Fetch recipes ──────────────────────────────────────────────────────────
 
-  const avgRating = (RECIPES.reduce((sum, r) => sum + r.rating, 0) / RECIPES.length).toFixed(1);
+  const fetchRecipes = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    setNoResults(false);
+    try {
+      let raw: SpoonacularRecipe[];
+
+      if (search.trim()) {
+        raw = await spoonacularService.searchRecipes(search.trim(), 9);
+        if (raw.length === 0) {
+          // No results for this search — show message, fallback to random
+          setNoResults(true);
+          raw = await spoonacularService.getRandomRecipes(6);
+        }
+      } else if (activeCategory !== 'All') {
+        raw = await spoonacularService.getRecipesByCategory(CATEGORY_MAP[activeCategory], 9);
+        if (raw.length === 0) {
+          // Category returned nothing — silently fallback to random
+          raw = await spoonacularService.getRandomRecipes(6);
+        }
+      } else {
+        raw = await spoonacularService.getRandomRecipes(6);
+      }
+
+      setRecipes(raw.map(mapRecipe));
+    } catch {
+      setError('Failed to load recipes. Please check your API key or try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, activeCategory]);
+
+  useEffect(() => {
+    fetchRecipes();
+  }, [fetchRecipes]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 600);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   return (
     <div className="dashboard-root" onClick={() => setDropdownOpen(false)}>
+      {selectedRecipe && (
+        <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
+      )}
+
       {/* Navbar */}
       <nav className="dashboard-nav">
         <div className="dashboard-nav__logo">
@@ -212,15 +372,10 @@ const Dashboard = () => {
           <span className="dashboard-nav__logo-text">CookShare</span>
         </div>
 
-        {/* Avatar + Dropdown */}
         <div className="dashboard-nav__user" onClick={(e) => e.stopPropagation()}>
-          <button
-            className="dashboard-nav__avatar"
-            onClick={() => setDropdownOpen((o) => !o)}
-          >
+          <button className="dashboard-nav__avatar" onClick={() => setDropdownOpen((o) => !o)}>
             {initials}
           </button>
-
           {dropdownOpen && (
             <div className="dropdown">
               <div className="dropdown__header">
@@ -248,7 +403,6 @@ const Dashboard = () => {
 
       {/* Main */}
       <main className="dashboard-main">
-        {/* Header */}
         <div className="dashboard-header">
           <div>
             <h1 className="dashboard-header__title">Discover Delicious Recipes</h1>
@@ -266,8 +420,8 @@ const Dashboard = () => {
           <input
             type="text"
             placeholder="Search recipes, ingredients, or tags..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="dashboard-search__input"
           />
         </div>
@@ -277,7 +431,7 @@ const Dashboard = () => {
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => { setActiveCategory(cat); setSearchInput(''); setSearch(''); setNoResults(false); }}
               className={`dashboard-filters__btn${activeCategory === cat ? ' dashboard-filters__btn--active' : ''}`}
             >
               {cat}
@@ -287,37 +441,45 @@ const Dashboard = () => {
 
         {/* Stats */}
         <div className="dashboard-stats">
-          <StatCard
-            iconClass="stat-card__icon--orange"
-            value={String(RECIPES.length)}
-            label="Total Recipes"
-            icon={<ChefHat size={20} />}
-          />
+          <StatCard iconClass="stat-card__icon--orange" value={String(recipes.length)} label="Total Recipes" icon={<ChefHat size={20} />} />
           <StatCard
             iconClass="stat-card__icon--blue"
-            value={avgRating}
+            value={recipes.length > 0 ? (recipes.reduce((s, r) => s + r.rating, 0) / recipes.length).toFixed(1) : '—'}
             label="Avg Rating"
             icon={<Star size={20} />}
           />
-          <StatCard
-            iconClass="stat-card__icon--green"
-            value="1.2k+"
-            label="Active Users"
-            icon={<Users size={20} />}
-          />
+          <StatCard iconClass="stat-card__icon--green" value="1.2k+" label="Active Users" icon={<Users size={20} />} />
         </div>
 
-        {/* Recipe Grid */}
-        {filtered.length > 0 ? (
-          <div className="recipe-grid">
-            {filtered.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
-            ))}
+        {/* No results banner */}
+        {noResults && !loading && (
+          <div className="dashboard-no-results">
+            <p className="dashboard-no-results__text">
+              No recipes found for <strong>"{searchInput}"</strong> — showing random recipes instead.
+            </p>
+          </div>
+        )}
+
+        {/* Content */}
+        {loading ? (
+          <div className="dashboard-loading">
+            <div className="dashboard-loading__spinner" />
+            <p className="dashboard-loading__text">Loading recipes...</p>
+          </div>
+        ) : error ? (
+          <div className="dashboard-error">
+            <p className="dashboard-error__title">Something went wrong</p>
+            <p>{error}</p>
+            <button className="dashboard-error__retry" onClick={fetchRecipes}>
+              <RefreshCw size={14} style={{ display: 'inline', marginRight: '0.375rem' }} />
+              Try Again
+            </button>
           </div>
         ) : (
-          <div className="recipe-grid__empty">
-            <p className="recipe-grid__empty-title">No recipes found</p>
-            <p className="recipe-grid__empty-sub">Try a different search or category</p>
+          <div className="recipe-grid">
+            {recipes.map((recipe) => (
+              <RecipeCard key={recipe.id} recipe={recipe} onClick={() => setSelectedRecipe(recipe)} />
+            ))}
           </div>
         )}
       </main>
