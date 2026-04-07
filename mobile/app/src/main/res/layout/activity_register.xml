@@ -21,13 +21,12 @@
             android:layout_width="72dp"
             android:layout_height="72dp"
             android:background="@drawable/bg_logo_circle">
-
             <ImageView
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_person"
-                app:tint="#FFFFFF" />
+                app:tint="#FFFFFF"/>
         </FrameLayout>
 
         <!-- Title -->
@@ -39,7 +38,7 @@
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="#111827"
-            android:gravity="center" />
+            android:gravity="center"/>
 
         <!-- Subtitle -->
         <TextView
@@ -49,9 +48,9 @@
             android:text="Create an account to start sharing recipes"
             android:textSize="13sp"
             android:textColor="#6B7280"
-            android:gravity="center" />
+            android:gravity="center"/>
 
-        <!-- First Name Label -->
+        <!-- First Name -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -59,9 +58,7 @@
             android:text="First Name"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#111827" />
-
-        <!-- First Name Input -->
+            android:textColor="#111827"/>
         <EditText
             android:id="@+id/etFirstName"
             android:layout_width="match_parent"
@@ -74,9 +71,9 @@
             android:paddingEnd="16dp"
             android:textSize="14sp"
             android:textColor="#111827"
-            android:textColorHint="#9CA3AF" />
+            android:textColorHint="#9CA3AF"/>
 
-        <!-- Last Name Label -->
+        <!-- Last Name -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -84,9 +81,7 @@
             android:text="Last Name"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#111827" />
-
-        <!-- Last Name Input -->
+            android:textColor="#111827"/>
         <EditText
             android:id="@+id/etLastName"
             android:layout_width="match_parent"
@@ -99,9 +94,9 @@
             android:paddingEnd="16dp"
             android:textSize="14sp"
             android:textColor="#111827"
-            android:textColorHint="#9CA3AF" />
+            android:textColorHint="#9CA3AF"/>
 
-        <!-- Email Label -->
+        <!-- Email -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -109,9 +104,7 @@
             android:text="Email"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#111827" />
-
-        <!-- Email Input -->
+            android:textColor="#111827"/>
         <EditText
             android:id="@+id/etEmail"
             android:layout_width="match_parent"
@@ -124,9 +117,9 @@
             android:paddingEnd="16dp"
             android:textSize="14sp"
             android:textColor="#111827"
-            android:textColorHint="#9CA3AF" />
+            android:textColorHint="#9CA3AF"/>
 
-        <!-- Password Label -->
+        <!-- Password -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -134,9 +127,7 @@
             android:text="Password"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#111827" />
-
-        <!-- Password Input -->
+            android:textColor="#111827"/>
         <EditText
             android:id="@+id/etPassword"
             android:layout_width="match_parent"
@@ -149,9 +140,9 @@
             android:paddingEnd="16dp"
             android:textSize="14sp"
             android:textColor="#111827"
-            android:textColorHint="#9CA3AF" />
+            android:textColorHint="#9CA3AF"/>
 
-        <!-- Confirm Password Label -->
+        <!-- Confirm Password -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -159,9 +150,7 @@
             android:text="Confirm Password"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#111827" />
-
-        <!-- Confirm Password Input -->
+            android:textColor="#111827"/>
         <EditText
             android:id="@+id/etConfirmPassword"
             android:layout_width="match_parent"
@@ -174,7 +163,7 @@
             android:paddingEnd="16dp"
             android:textSize="14sp"
             android:textColor="#111827"
-            android:textColorHint="#9CA3AF" />
+            android:textColorHint="#9CA3AF"/>
 
         <!-- Create Account Button -->
         <Button
@@ -188,7 +177,38 @@
             android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
-            android:stateListAnimator="@null" />
+            android:stateListAnimator="@null"
+            style="@android:style/Widget.Button"/>
+
+        <!-- OR Divider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="4dp">
+            <View android:layout_width="0dp" android:layout_height="1dp"
+                android:layout_weight="1" android:background="#E5E7EB"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="  OR  " android:textSize="12sp" android:textColor="#9CA3AF"/>
+            <View android:layout_width="0dp" android:layout_height="1dp"
+                android:layout_weight="1" android:background="#E5E7EB"/>
+        </LinearLayout>
+
+        <!-- Google Sign Up Button -->
+        <Button
+            android:id="@+id/btnGoogleSignUp"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_google_btn"
+            android:text="Sign up with Google"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#374151"
+            android:stateListAnimator="@null"
+            style="@android:style/Widget.Button"/>
 
         <!-- Sign In Link -->
         <LinearLayout
@@ -196,14 +216,12 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:orientation="horizontal">
-
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Already have an account? "
                 android:textSize="13sp"
-                android:textColor="#6B7280" />
-
+                android:textColor="#6B7280"/>
             <TextView
                 android:id="@+id/tvSignIn"
                 android:layout_width="wrap_content"
@@ -213,7 +231,7 @@
                 android:textColor="#F97316"
                 android:textStyle="bold"
                 android:clickable="true"
-                android:focusable="true" />
+                android:focusable="true"/>
         </LinearLayout>
 
     </LinearLayout>
