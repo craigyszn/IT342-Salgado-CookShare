@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChefHat, Star, Users, Clock, Plus, Search,
+  ChefHat, Star, Users, Clock, Plus, Search, Shield,
   LogOut, Settings, User, Heart, Share2, X,
   Timer, UtensilsCrossed, MessageCircle, RefreshCw,
 } from 'lucide-react';
@@ -51,6 +51,27 @@ const mapRecipe = (r: SpoonacularRecipe): Recipe => ({
   instructions:
     r.analyzedInstructions?.[0]?.steps.map((s) => s.step) ?? ['See full recipe for instructions.'],
   postedDate: new Date().toISOString().split('T')[0],
+  comments: [],
+});
+
+// ── Mapper: DB Recipe → our Recipe type ──────────────────────────────────────
+
+const mapDbRecipe = (r: any): Recipe => ({
+  id: r.id,
+  title: r.title,
+  description: r.description || '',
+  tags: r.tags || [],
+  rating: r.rating || 0,
+  reviewCount: r.reviewCount || 0,
+  prepTime: r.prepTime || 'N/A',
+  cookTime: r.cookTime || 'N/A',
+  difficulty: (r.difficulty as Difficulty) || 'Easy',
+  author: r.author || 'CookShare User',
+  servings: r.servings || 4,
+  imageUrl: r.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1080',
+  ingredients: r.ingredients || [],
+  instructions: r.instructions || [],
+  postedDate: r.createdAt || new Date().toISOString().split('T')[0],
   comments: [],
 });
 
@@ -108,20 +129,99 @@ const RecipeCard = ({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
 const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) => {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [hasRated, setHasRated] = useState(false);
+  const [liveRating, setLiveRating] = useState(recipe.rating);
+  const [liveReviewCount, setLiveReviewCount] = useState(recipe.reviewCount);
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<Comment[]>(recipe.comments);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(true);
 
-  const handlePostComment = () => {
-    if (!commentText.trim()) return;
-    const user = authService.getUser();
-    const newComment: Comment = {
-      id: Date.now(),
-      author: user ? `${user.firstName} ${user.lastName}` : 'Anonymous',
-      text: commentText.trim(),
-      date: 'Just now',
+  const user = authService.getUser();
+  const recipeId = String(recipe.id);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`http://localhost:8081/api/comments?recipeId=${recipeId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const mapped: Comment[] = data.map((c: any) => ({
+            id: c.id,
+            author: c.authorName,
+            text: c.text,
+            date: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Just now',
+          }));
+          setComments(mapped);
+        }
+      } catch { /* ignore */ }
+
+      if (user?.email) {
+        try {
+          const res = await fetch(
+            `http://localhost:8081/api/favorites/check?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setIsFavorited(data.favorited);
+          }
+        } catch { /* ignore */ }
+      }
+
+      setLoadingComments(false);
     };
-    setComments([newComment, ...comments]);
-    setCommentText('');
+    load();
+  }, [recipeId]);
+
+  const handleToggleFavorite = async () => {
+    if (!user?.email) return;
+    if (isFavorited) {
+      await fetch(
+        `http://localhost:8081/api/favorites?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`,
+        { method: 'DELETE' }
+      );
+      setIsFavorited(false);
+    } else {
+      await fetch('http://localhost:8081/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          recipeId,
+          recipeTitle: recipe.title,
+          recipeImage: recipe.imageUrl,
+        }),
+      });
+      setIsFavorited(true);
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!commentText.trim()) return;
+    const authorName = user ? `${user.firstName} ${user.lastName}` : 'Anonymous';
+    try {
+      const res = await fetch('http://localhost:8081/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user?.email ?? '',
+          authorName,
+          recipeId,
+          text: commentText.trim(),
+        }),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        const newComment: Comment = {
+          id: saved.id,
+          author: saved.authorName,
+          text: saved.text,
+          date: 'Just now',
+        };
+        setComments([newComment, ...comments]);
+        setCommentText('');
+      }
+    } catch { /* ignore */ }
   };
 
   return (
@@ -131,7 +231,13 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         <div className="modal__image-wrapper">
           <img src={recipe.imageUrl} alt={recipe.title} className="modal__image" />
           <div className="modal__image-actions">
-            <button className="modal__icon-btn"><Heart size={16} /></button>
+            <button
+              className={`modal__icon-btn${isFavorited ? ' modal__icon-btn--active' : ''}`}
+              onClick={(e) => { e.stopPropagation(); handleToggleFavorite(); }}
+              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Heart size={16} fill={isFavorited ? '#f97316' : 'none'} color={isFavorited ? '#f97316' : 'currentColor'} />
+            </button>
             <button className="modal__icon-btn"><Share2 size={16} /></button>
           </div>
         </div>
@@ -176,7 +282,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
               <Star size={18} color="#f97316" fill="#f97316" />
               <div>
                 <span className="modal__meta-label">Rating</span>
-                <span className="modal__meta-value">{recipe.rating} ({recipe.reviewCount})</span>
+                <span className="modal__meta-value">{liveRating} ({liveReviewCount})</span>
               </div>
             </div>
           </div>
@@ -218,19 +324,45 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
           {/* Rate */}
           <h3 className="modal__section-title">Rate this recipe</h3>
-          <div className="modal__stars">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                className={`modal__star${(hoverRating || userRating) >= star ? ' modal__star--active' : ''}`}
-                onClick={() => setUserRating(star)}
-                onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-              >
-                <Star size={28} fill={(hoverRating || userRating) >= star ? '#f97316' : 'none'} />
-              </button>
-            ))}
+          <div className="modal__rating-display">
+            <Star size={16} fill="#facc15" color="#facc15" />
+            <span className="modal__rating-avg">{liveRating}</span>
+            <span className="modal__rating-count">({liveReviewCount} {liveReviewCount === 1 ? 'rating' : 'ratings'})</span>
           </div>
+          {hasRated ? (
+            <p className="modal__rated-msg">
+              You rated this recipe {userRating} star{userRating > 1 ? 's' : ''}! Thank you.
+            </p>
+          ) : (
+            <div className="modal__stars">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  className={`modal__star${(hoverRating || userRating) >= star ? ' modal__star--active' : ''}`}
+                  onClick={async () => {
+                    setUserRating(star);
+                    setHasRated(true);
+                    try {
+                      const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}/rate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stars: star }),
+                      });
+                      if (res.ok) {
+                        const updated = await res.json();
+                        setLiveRating(updated.rating);
+                        setLiveReviewCount(updated.reviewCount);
+                      }
+                    } catch { /* ignore */ }
+                  }}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                >
+                  <Star size={28} fill={(hoverRating || userRating) >= star ? '#f97316' : 'none'} />
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="modal__divider" />
 
@@ -303,7 +435,18 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // ── Real user count from backend ───────────────────────────────────────────
+  const [userCount, setUserCount] = useState('...');
+
+  useEffect(() => {
+    fetch('http://localhost:8081/api/users/count')
+      .then((res) => res.json())
+      .then((data) => setUserCount(String(data.count)))
+      .catch(() => setUserCount('—'));
+  }, []);
+
   const user = authService.getUser();
+  const isAdmin = authService.isAdmin();
   const initials = user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U';
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'User';
   const email = user?.email ?? '';
@@ -313,72 +456,79 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  // ── Fetch recipes ──────────────────────────────────────────────────────────
+  // ── Fetch DB recipes ──────────────────────────────────────────────────────
+
+  const fetchDbRecipes = async (): Promise<Recipe[]> => {
+    try {
+      const res = await fetch('http://localhost:8081/api/recipes');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.map(mapDbRecipe);
+    } catch {
+      return [];
+    }
+  };
+
+  // ── Fetch recipes (Spoonacular + DB merged) ────────────────────────────────
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);
     setError('');
     setNoResults(false);
     try {
-      let raw: SpoonacularRecipe[];
+      const dbRecipes = await fetchDbRecipes();
 
       if (search.trim()) {
-        raw = await spoonacularService.searchRecipes(search.trim(), 9);
-        if (raw.length === 0) {
-          // No results for this search — show message, fallback to random
+        const dbMatches = dbRecipes.filter((r) =>
+          r.title.toLowerCase().includes(search.toLowerCase()) ||
+          r.tags.some((t) => t.toLowerCase().includes(search.toLowerCase())) ||
+          r.author.toLowerCase().includes(search.toLowerCase())
+        );
+
+        let raw: SpoonacularRecipe[] = [];
+        try {
+          raw = await spoonacularService.searchRecipes(search.trim(), 6);
+        } catch { raw = []; }
+
+        const merged = [...dbMatches, ...raw.map(mapRecipe)];
+
+        if (merged.length === 0) {
           setNoResults(true);
-          raw = await spoonacularService.getRandomRecipes(6);
+          const fallback = await spoonacularService.getRandomRecipes(6).catch(() => []);
+          setRecipes([...dbRecipes, ...fallback.map(mapRecipe)]);
+        } else {
+          setRecipes(merged);
         }
-      } else if (activeCategory !== 'All') {
-        raw = await spoonacularService.getRecipesByCategory(CATEGORY_MAP[activeCategory], 9);
-        if (raw.length === 0) {
-          // Category returned nothing — silently fallback to random
-          raw = await spoonacularService.getRandomRecipes(6);
-        }
-      } else {
-        raw = await spoonacularService.getRandomRecipes(6);
+        return;
       }
 
-            // Map Spoonacular recipes
-      const spoonacularRecipes = raw.map(mapRecipe);
+      if (activeCategory !== 'All') {
+        const dbCategoryMatches = dbRecipes.filter((r) =>
+          r.tags.some((t) => t.toLowerCase() === activeCategory.toLowerCase()) ||
+          (r as any).category?.toLowerCase() === activeCategory.toLowerCase()
+        );
 
-      // Fetch recipes from your Spring Boot backend
-      let backendRecipes: Recipe[] = [];
+        let raw: SpoonacularRecipe[] = [];
+        try {
+          raw = await spoonacularService.getRecipesByCategory(CATEGORY_MAP[activeCategory], 6);
+        } catch { raw = []; }
 
+        if (raw.length === 0 && dbCategoryMatches.length === 0) {
+          const fallback = await spoonacularService.getRandomRecipes(6).catch(() => []);
+          setRecipes([...dbRecipes, ...fallback.map(mapRecipe)]);
+        } else {
+          setRecipes([...dbCategoryMatches, ...raw.map(mapRecipe)]);
+        }
+        return;
+      }
+
+      let raw: SpoonacularRecipe[] = [];
       try {
-        const res = await fetch("http://localhost:8081/api/recipes");
+        raw = await spoonacularService.getRandomRecipes(6);
+      } catch { raw = []; }
 
-        if (res.ok) {
-          const data = await res.json();
+      setRecipes([...dbRecipes, ...raw.map(mapRecipe)]);
 
-          backendRecipes = data.map((r: any) => ({
-            id: r.id,
-            title: r.title,
-            description: r.description,
-            tags: r.tags || [],
-            rating: r.rating || 0,
-            reviewCount: r.reviewCount || 0,
-            prepTime: "N/A",
-            cookTime: r.cookTime || "N/A",
-            difficulty: r.difficulty || "Easy",
-            author: r.author || "User",
-            servings: r.servings || 1,
-            imageUrl: r.image,
-            ingredients: r.ingredients || [],
-            instructions: r.instructions || [],
-            postedDate: r.createdAt,
-            comments: []
-          }));
-        }
-        } catch {
-          console.warn("Backend recipes failed to load");
-        }
-
-        // Merge both recipe sources
-        setRecipes([
-          ...backendRecipes,
-          ...spoonacularRecipes
-        ]);
     } catch {
       setError('Failed to load recipes. Please check your API key or try again.');
     } finally {
@@ -390,7 +540,6 @@ const Dashboard = () => {
     fetchRecipes();
   }, [fetchRecipes]);
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 600);
     return () => clearTimeout(timer);
@@ -409,6 +558,15 @@ const Dashboard = () => {
             <ChefHat size={18} color="white" />
           </div>
           <span className="dashboard-nav__logo-text">CookShare</span>
+        </div>
+
+        <div className="dashboard-nav__center">
+          {isAdmin && (
+            <button className="dashboard-nav__admin-btn" onClick={() => navigate('/admin')}>
+              <Shield size={15} />
+              Admin Access
+            </button>
+          )}
         </div>
 
         <div className="dashboard-nav__user" onClick={(e) => e.stopPropagation()}>
@@ -480,14 +638,26 @@ const Dashboard = () => {
 
         {/* Stats */}
         <div className="dashboard-stats">
-          <StatCard iconClass="stat-card__icon--orange" value={String(recipes.length)} label="Total Recipes" icon={<ChefHat size={20} />} />
+          <StatCard
+            iconClass="stat-card__icon--orange"
+            value={String(recipes.length)}
+            label="Total Recipes"
+            icon={<ChefHat size={20} />}
+          />
           <StatCard
             iconClass="stat-card__icon--blue"
-            value={recipes.length > 0 ? (recipes.reduce((s, r) => s + r.rating, 0) / recipes.length).toFixed(1) : '—'}
+            value={recipes.length > 0
+              ? (recipes.reduce((s, r) => s + r.rating, 0) / recipes.length).toFixed(1)
+              : '—'}
             label="Avg Rating"
             icon={<Star size={20} />}
           />
-          <StatCard iconClass="stat-card__icon--green" value="1.2k+" label="Active Users" icon={<Users size={20} />} />
+          <StatCard
+            iconClass="stat-card__icon--green"
+            value={userCount}
+            label="Active Users"
+            icon={<Users size={20} />}
+          />
         </div>
 
         {/* No results banner */}
