@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.salgado.cookshare.R
 import com.salgado.cookshare.api.RetrofitClient
-import com.salgado.cookshare.model.RegisterRequest
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

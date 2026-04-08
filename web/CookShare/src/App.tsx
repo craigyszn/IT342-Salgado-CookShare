@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import CreateRecipe from './pages/CreateRecipe';
 import Profile from './pages/Profile';
 import './App.css';
+import OAuthSuccess from './pages/OAuthSuccessPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
@@ -17,6 +19,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/create-recipe" element={<CreateRecipe />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/oauth-success" element={<OAuthSuccess />} />
+        <Route path="/admin" element={<AdminPage />} />
+
       </Routes>
     </Router>
   );
