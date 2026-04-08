@@ -59,25 +59,25 @@ class RecipeDetailActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        ivRecipeImage      = findViewById(R.id.ivRecipeImage)
-        tvTitle            = findViewById(R.id.tvTitle)
-        tvDifficulty       = findViewById(R.id.tvDifficulty)
-        tvDescription      = findViewById(R.id.tvDescription)
-        tvPrepTime         = findViewById(R.id.tvPrepTime)
-        tvCookTime         = findViewById(R.id.tvCookTime)
-        tvServings         = findViewById(R.id.tvServings)
-        tvRating           = findViewById(R.id.tvRating)
-        tagsContainer      = findViewById(R.id.tagsContainer)
+        ivRecipeImage        = findViewById(R.id.ivRecipeImage)
+        tvTitle              = findViewById(R.id.tvTitle)
+        tvDifficulty         = findViewById(R.id.tvDifficulty)
+        tvDescription        = findViewById(R.id.tvDescription)
+        tvPrepTime           = findViewById(R.id.tvPrepTime)
+        tvCookTime           = findViewById(R.id.tvCookTime)
+        tvServings           = findViewById(R.id.tvServings)
+        tvRating             = findViewById(R.id.tvRating)
+        tagsContainer        = findViewById(R.id.tagsContainer)
         ingredientsContainer = findViewById(R.id.ingredientsContainer)
         instructionsContainer = findViewById(R.id.instructionsContainer)
-        starsContainer     = findViewById(R.id.starsContainer)
-        tvCommentsTitle    = findViewById(R.id.tvCommentsTitle)
-        etComment          = findViewById(R.id.etComment)
-        btnPostComment     = findViewById(R.id.btnPostComment)
-        commentsContainer  = findViewById(R.id.commentsContainer)
-        tvAuthor           = findViewById(R.id.tvAuthor)
-        toolbar            = findViewById(R.id.toolbar)
-        btnFavorite        = findViewById(R.id.btnFavorite)
+        starsContainer       = findViewById(R.id.starsContainer)
+        tvCommentsTitle      = findViewById(R.id.tvCommentsTitle)
+        etComment            = findViewById(R.id.etComment)
+        btnPostComment       = findViewById(R.id.btnPostComment)
+        commentsContainer    = findViewById(R.id.commentsContainer)
+        tvAuthor             = findViewById(R.id.tvAuthor)
+        toolbar              = findViewById(R.id.toolbar)
+        btnFavorite          = findViewById(R.id.btnFavorite)
         prefs = getSharedPreferences("cookshare_prefs", MODE_PRIVATE)
     }
 
@@ -88,19 +88,21 @@ class RecipeDetailActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
     }
 
+    private fun getToken(): String = "Bearer ${prefs.getString("access_token", "")}"
+
     private fun loadRecipeData() {
-        recipeId      = intent.getStringExtra("recipe_id") ?: ""
-        val title     = intent.getStringExtra("recipe_title") ?: "Recipe"
-        val imageUrl  = intent.getStringExtra("recipe_image") ?: ""
+        recipeId        = intent.getStringExtra("recipe_id") ?: ""
+        val title       = intent.getStringExtra("recipe_title") ?: "Recipe"
+        val imageUrl    = intent.getStringExtra("recipe_image") ?: ""
         val description = intent.getStringExtra("recipe_description") ?: ""
-        val difficulty = intent.getStringExtra("recipe_difficulty") ?: "Easy"
-        val prepTime  = intent.getStringExtra("recipe_prep_time") ?: "N/A"
-        val cookTime  = intent.getStringExtra("recipe_cook_time") ?: "N/A"
-        val servings  = intent.getIntExtra("recipe_servings", 4)
-        val rating    = intent.getDoubleExtra("recipe_rating", 0.0)
+        val difficulty  = intent.getStringExtra("recipe_difficulty") ?: "Easy"
+        val prepTime    = intent.getStringExtra("recipe_prep_time") ?: "N/A"
+        val cookTime    = intent.getStringExtra("recipe_cook_time") ?: "N/A"
+        val servings    = intent.getIntExtra("recipe_servings", 4)
+        val rating      = intent.getDoubleExtra("recipe_rating", 0.0)
         val reviewCount = intent.getIntExtra("recipe_review_count", 0)
-        val author    = intent.getStringExtra("recipe_author") ?: "Spoonacular"
-        val tags      = intent.getStringArrayListExtra("recipe_tags") ?: arrayListOf()
+        val author      = intent.getStringExtra("recipe_author") ?: "Spoonacular"
+        val tags        = intent.getStringArrayListExtra("recipe_tags") ?: arrayListOf()
         val ingredients = intent.getStringArrayListExtra("recipe_ingredients") ?: arrayListOf()
         val instructions = intent.getStringArrayListExtra("recipe_instructions") ?: arrayListOf()
 
@@ -157,7 +159,6 @@ class RecipeDetailActivity : AppCompatActivity() {
             instructionsContainer.addView(v)
         }
 
-        // Favorite button click
         btnFavorite.setOnClickListener { toggleFavorite() }
     }
 
@@ -185,14 +186,14 @@ class RecipeDetailActivity : AppCompatActivity() {
         userRating = rating
         hasRated = true
 
-        // Update star colors immediately
         for (i in 0 until starsContainer.childCount) {
             val star = starsContainer.getChildAt(i) as ImageView
             star.setColorFilter(if (i < rating) 0xFFF97316.toInt() else 0xFFD1D5DB.toInt())
         }
 
-        // Send to backend
-        RetrofitClient.instance.rateRecipe(recipeId, RateRequest(rating))
+        val userEmail = getUser()?.email ?: ""
+        val token = getToken()
+        RetrofitClient.instance.rateRecipe(token, recipeId, RateRequest(rating, userEmail))
             .enqueue(object : Callback<DbRecipe> {
                 override fun onResponse(call: Call<DbRecipe>, response: Response<DbRecipe>) {
                     if (response.isSuccessful) {
@@ -201,12 +202,18 @@ class RecipeDetailActivity : AppCompatActivity() {
                             liveReviewCount = it.reviewCount
                             runOnUiThread { updateRatingDisplay() }
                         }
+                    } else if (response.code() == 409) {
+                        runOnUiThread {
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "You have already rated this recipe", Toast.LENGTH_SHORT).show()
+                        }
                     }
                     Toast.makeText(this@RecipeDetailActivity,
                         "Rated $rating star${if (rating > 1) "s" else ""}!", Toast.LENGTH_SHORT).show()
                 }
                 override fun onFailure(call: Call<DbRecipe>, t: Throwable) {
-                    Toast.makeText(this@RecipeDetailActivity, "Rating saved locally", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@RecipeDetailActivity,
+                        "Rating failed: ${t.message}", Toast.LENGTH_SHORT).show()
                 }
             })
     }
@@ -226,17 +233,19 @@ class RecipeDetailActivity : AppCompatActivity() {
     }
 
     private fun toggleFavorite() {
-        val user = getUser() ?: return
+        val user  = getUser() ?: return
         val email = user.email ?: return
+        val token = getToken()
 
         if (isFavorited) {
-            RetrofitClient.instance.removeFavorite(email, recipeId)
+            RetrofitClient.instance.removeFavorite(token, email, recipeId)
                 .enqueue(object : Callback<String> {
                     override fun onResponse(call: Call<String>, response: Response<String>) {
                         isFavorited = false
                         runOnUiThread {
                             updateFavoriteIcon()
-                            Toast.makeText(this@RecipeDetailActivity, "Removed from favorites", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "Removed from favorites", Toast.LENGTH_SHORT).show()
                         }
                     }
                     override fun onFailure(call: Call<String>, t: Throwable) {}
@@ -244,13 +253,14 @@ class RecipeDetailActivity : AppCompatActivity() {
         } else {
             val title = intent.getStringExtra("recipe_title") ?: ""
             val image = intent.getStringExtra("recipe_image") ?: ""
-            RetrofitClient.instance.addFavorite(FavoriteRequest(email, recipeId, title, image))
+            RetrofitClient.instance.addFavorite(token, FavoriteRequest(email, recipeId, title, image))
                 .enqueue(object : Callback<FavoriteItem> {
                     override fun onResponse(call: Call<FavoriteItem>, response: Response<FavoriteItem>) {
                         isFavorited = true
                         runOnUiThread {
                             updateFavoriteIcon()
-                            Toast.makeText(this@RecipeDetailActivity, "Added to favorites!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "Added to favorites!", Toast.LENGTH_SHORT).show()
                         }
                     }
                     override fun onFailure(call: Call<FavoriteItem>, t: Throwable) {}
@@ -284,23 +294,28 @@ class RecipeDetailActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please write a comment first", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val user = getUser()
+            val user       = getUser()
             val authorName = if (user != null) "${user.firstName} ${user.lastName}" else "Anonymous"
-            val email = user?.email ?: ""
+            val email      = user?.email ?: ""
+            val token      = getToken()
 
             btnPostComment.isEnabled = false
-            RetrofitClient.instance.postComment(CommentRequest(email, authorName, recipeId, text))
+            RetrofitClient.instance.postComment(token, CommentRequest(email, authorName, recipeId, text))
                 .enqueue(object : Callback<CommentItem> {
                     override fun onResponse(call: Call<CommentItem>, response: Response<CommentItem>) {
                         btnPostComment.isEnabled = true
                         if (response.isSuccessful) {
                             etComment.setText("")
                             loadComments()
+                        } else {
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "Failed to post comment", Toast.LENGTH_SHORT).show()
                         }
                     }
                     override fun onFailure(call: Call<CommentItem>, t: Throwable) {
                         btnPostComment.isEnabled = true
-                        Toast.makeText(this@RecipeDetailActivity, "Failed to post comment", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@RecipeDetailActivity,
+                            "Network error: ${t.message}", Toast.LENGTH_SHORT).show()
                     }
                 })
         }

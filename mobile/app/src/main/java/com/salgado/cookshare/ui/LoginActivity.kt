@@ -31,16 +31,15 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
         initViews()
         setupListeners()
-        // Handle deep link if app opened via OAuth redirect
         handleOAuthDeepLink(intent)
     }
 
     private fun initViews() {
-        etEmail         = findViewById(R.id.etEmail)
-        etPassword      = findViewById(R.id.etPassword)
-        btnSignIn       = findViewById(R.id.btnSignIn)
-        btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn)
-        tvSignUp        = findViewById(R.id.tvSignUp)
+        etEmail          = findViewById(R.id.etEmail)
+        etPassword       = findViewById(R.id.etPassword)
+        btnSignIn        = findViewById(R.id.btnSignIn)
+        btnGoogleSignIn  = findViewById(R.id.btnGoogleSignIn)
+        tvSignUp         = findViewById(R.id.tvSignUp)
         tvForgotPassword = findViewById(R.id.tvForgotPassword)
     }
 
@@ -71,19 +70,31 @@ class LoginActivity : AppCompatActivity() {
 
         RetrofitClient.instance.login(LoginRequest(email, password))
             .enqueue(object : Callback<LoginResponse> {
-                override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                override fun onResponse(
+                    call: Call<LoginResponse>,
+                    response: Response<LoginResponse>
+                ) {
                     btnSignIn.isEnabled = true
                     btnSignIn.text = "Sign In"
                     if (response.isSuccessful && response.body() != null) {
                         saveUserAndNavigate(response.body()!!)
                     } else {
-                        Toast.makeText(this@LoginActivity, "Invalid email or password", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@LoginActivity,
+                            "Invalid email or password",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
+
                 override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
                     btnSignIn.isEnabled = true
                     btnSignIn.text = "Sign In"
-                    Toast.makeText(this@LoginActivity, "Network error: ${t.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "Network error: ${t.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             })
     }
@@ -95,11 +106,15 @@ class LoginActivity : AppCompatActivity() {
         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(googleAuthUrl)))
     }
 
-    // ── Save + Navigate ───────────────────────────────────────────────────────
+    // ── Save user + tokens then navigate to Dashboard ─────────────────────────
 
     private fun saveUserAndNavigate(user: LoginResponse) {
         val prefs = getSharedPreferences("cookshare_prefs", MODE_PRIVATE)
-        prefs.edit().putString("user_data", Gson().toJson(user)).apply()
+        prefs.edit()
+            .putString("user_data", Gson().toJson(user))
+            .putString("access_token", user.accessToken ?: "")
+            .putString("refresh_token", user.refreshToken ?: "")
+            .apply()
         Toast.makeText(this, "Welcome ${user.firstName}!", Toast.LENGTH_SHORT).show()
         startActivity(Intent(this, DashboardActivity::class.java))
         finish()
@@ -116,11 +131,13 @@ class LoginActivity : AppCompatActivity() {
         val data = intent?.data ?: return
         if (data.scheme == "cookshare" && data.host == "oauth-success") {
             val fakeResponse = LoginResponse(
-                message   = "Login successful",
-                firstName = data.getQueryParameter("firstName") ?: "",
-                lastName  = data.getQueryParameter("lastName") ?: "",
-                email     = data.getQueryParameter("email") ?: "",
-                role      = data.getQueryParameter("role") ?: "USER"
+                message      = "Login successful",
+                firstName    = data.getQueryParameter("firstName") ?: "",
+                lastName     = data.getQueryParameter("lastName") ?: "",
+                email        = data.getQueryParameter("email") ?: "",
+                role         = data.getQueryParameter("role") ?: "USER",
+                accessToken  = null,
+                refreshToken = null
             )
             saveUserAndNavigate(fakeResponse)
         }

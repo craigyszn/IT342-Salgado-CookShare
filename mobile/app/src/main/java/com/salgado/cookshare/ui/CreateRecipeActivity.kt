@@ -45,20 +45,20 @@ class CreateRecipeActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        btnBack          = findViewById(R.id.btnBack)
-        etTitle          = findViewById(R.id.etTitle)
-        etDescription    = findViewById(R.id.etDescription)
-        etImageUrl       = findViewById(R.id.etImageUrl)
-        etPrepTime       = findViewById(R.id.etPrepTime)
-        etCookTime       = findViewById(R.id.etCookTime)
-        etServings       = findViewById(R.id.etServings)
+        btnBack           = findViewById(R.id.btnBack)
+        etTitle           = findViewById(R.id.etTitle)
+        etDescription     = findViewById(R.id.etDescription)
+        etImageUrl        = findViewById(R.id.etImageUrl)
+        etPrepTime        = findViewById(R.id.etPrepTime)
+        etCookTime        = findViewById(R.id.etCookTime)
+        etServings        = findViewById(R.id.etServings)
         spinnerDifficulty = findViewById(R.id.spinnerDifficulty)
-        spinnerCategory  = findViewById(R.id.spinnerCategory)
-        etTags           = findViewById(R.id.etTags)
-        etIngredients    = findViewById(R.id.etIngredients)
-        etInstructions   = findViewById(R.id.etInstructions)
-        btnPublish       = findViewById(R.id.btnPublish)
-        progressBar      = findViewById(R.id.progressBar)
+        spinnerCategory   = findViewById(R.id.spinnerCategory)
+        etTags            = findViewById(R.id.etTags)
+        etIngredients     = findViewById(R.id.etIngredients)
+        etInstructions    = findViewById(R.id.etInstructions)
+        btnPublish        = findViewById(R.id.btnPublish)
+        progressBar       = findViewById(R.id.progressBar)
     }
 
     private fun setupSpinners() {
@@ -78,17 +78,17 @@ class CreateRecipeActivity : AppCompatActivity() {
     }
 
     private fun handlePublish() {
-        val title       = etTitle.text.toString().trim()
-        val description = etDescription.text.toString().trim()
-        val imageUrl    = etImageUrl.text.toString().trim()
-        val prepTime    = etPrepTime.text.toString().trim()
-        val cookTime    = etCookTime.text.toString().trim()
-        val servings    = etServings.text.toString().trim()
-        val tags        = etTags.text.toString().trim()
-        val ingredients = etIngredients.text.toString().trim()
+        val title        = etTitle.text.toString().trim()
+        val description  = etDescription.text.toString().trim()
+        val imageUrl     = etImageUrl.text.toString().trim()
+        val prepTime     = etPrepTime.text.toString().trim()
+        val cookTime     = etCookTime.text.toString().trim()
+        val servings     = etServings.text.toString().trim()
+        val tags         = etTags.text.toString().trim()
+        val ingredients  = etIngredients.text.toString().trim()
         val instructions = etInstructions.text.toString().trim()
-        val difficulty  = spinnerDifficulty.selectedItem.toString()
-        val category    = spinnerCategory.selectedItem.toString()
+        val difficulty   = spinnerDifficulty.selectedItem.toString()
+        val category     = spinnerCategory.selectedItem.toString()
 
         if (title.isEmpty() || description.isEmpty()) {
             Toast.makeText(this, "Please fill in title and description", Toast.LENGTH_SHORT).show()
@@ -103,37 +103,40 @@ class CreateRecipeActivity : AppCompatActivity() {
             return
         }
 
-        val user = getUser()
+        val user       = getUser()
         val authorName = if (user != null) "${user.firstName} ${user.lastName}" else "Unknown"
-        val email = user?.email ?: ""
-        val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val email      = user?.email ?: ""
+        val date       = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-        val tagList = tags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-        val ingredientList = ingredients.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+        val tagList         = tags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        val ingredientList  = ingredients.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
         val instructionList = instructions.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
 
         val request = CreateRecipeRequest(
-            id = System.currentTimeMillis().toString(),
-            title = title,
-            description = description,
-            author = authorName,
-            userEmail = email,
-            image = imageUrl.ifEmpty { "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400" },
-            prepTime = prepTime.ifEmpty { "N/A" },
-            cookTime = cookTime.ifEmpty { "N/A" },
-            servings = servings.toIntOrNull() ?: 4,
-            difficulty = difficulty,
-            category = category,
-            tags = tagList,
-            ingredients = ingredientList,
+            id           = System.currentTimeMillis().toString(),
+            title        = title,
+            description  = description,
+            author       = authorName,
+            userEmail    = email,
+            image        = imageUrl.ifEmpty { "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400" },
+            prepTime     = prepTime.ifEmpty { "N/A" },
+            cookTime     = cookTime.ifEmpty { "N/A" },
+            servings     = servings.toIntOrNull() ?: 4,
+            difficulty   = difficulty,
+            category     = category,
+            tags         = tagList,
+            ingredients  = ingredientList,
             instructions = instructionList,
-            createdAt = date
+            createdAt    = date
         )
 
         btnPublish.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
-        RetrofitClient.instance.createRecipe(request).enqueue(object : Callback<DbRecipe> {
+        // ── Pass JWT token in Authorization header ─────────────────────────────
+        val token = "Bearer ${prefs.getString("access_token", "")}"
+
+        RetrofitClient.instance.createRecipe(token, request).enqueue(object : Callback<DbRecipe> {
             override fun onResponse(call: Call<DbRecipe>, response: Response<DbRecipe>) {
                 progressBar.visibility = View.GONE
                 btnPublish.isEnabled = true
@@ -143,7 +146,7 @@ class CreateRecipeActivity : AppCompatActivity() {
                     finish()
                 } else {
                     Toast.makeText(this@CreateRecipeActivity,
-                        "Failed to publish recipe", Toast.LENGTH_SHORT).show()
+                        "Failed to publish recipe (${response.code()})", Toast.LENGTH_SHORT).show()
                 }
             }
             override fun onFailure(call: Call<DbRecipe>, t: Throwable) {
