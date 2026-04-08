@@ -53,7 +53,7 @@ function Login() {
             <input
               id="email"
               type="email"
-              placeholder="demo@cookshare.com"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -105,12 +105,6 @@ function Login() {
           <p>
             Don't have an account? <a href="/register">Sign up</a>
           </p>
-        </div>
-
-        <div className="demo-credentials">
-          <strong>Demo credentials:</strong>
-          <p>Email: demo@cookshare.com</p>
-          <p>Password: demo123</p>
         </div>
       </div>
     </div>

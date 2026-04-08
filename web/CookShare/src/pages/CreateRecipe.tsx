@@ -76,7 +76,7 @@ export function CreateRecipe() {
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title || !description || !category) {
@@ -96,6 +96,7 @@ export function CreateRecipe() {
       id: Date.now().toString(),
       title,
       author: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
+      userEmail: user?.email ?? '',
       description,
       image: imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1080',
       prepTime,
@@ -111,25 +112,21 @@ export function CreateRecipe() {
       createdAt: new Date().toISOString().split('T')[0],
     };
 
-    fetch("http://localhost:8081/api/recipes", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(newRecipe)
-  })
-  .then(res => {
-    if (!res.ok) throw new Error('Failed to save recipe');
-    return res.json();
-  })
-  .then(() => {
-    showToast('Recipe created successfully!', 'success');
-    setTimeout(() => navigate('/dashboard'), 1000);
-  })
-  .catch(() => {
-    showToast('Failed to create recipe', 'error');
-  });
-    };
+    try {
+      const response = await fetch('http://localhost:8081/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRecipe),
+      });
+
+      if (!response.ok) throw new Error('Failed to save recipe');
+
+      showToast('Recipe created successfully!', 'success');
+      setTimeout(() => navigate('/dashboard'), 1000);
+    } catch {
+      showToast('Failed to save recipe. Please try again.', 'error');
+    }
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
