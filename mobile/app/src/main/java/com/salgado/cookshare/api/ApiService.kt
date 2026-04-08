@@ -13,6 +13,12 @@ interface ApiService {
     @POST("api/auth/register")
     fun register(@Body request: RegisterRequest): Call<String>
 
+    @POST("api/auth/refresh")
+    fun refreshToken(@Body request: RefreshRequest): Call<LoginResponse>
+
+    @POST("api/auth/logout")
+    fun logout(@Body request: RefreshRequest): Call<String>
+
     // ── Recipes ───────────────────────────────────────────────────────────────
     @GET("api/recipes")
     fun getAllRecipes(): Call<List<DbRecipe>>
@@ -21,13 +27,23 @@ interface ApiService {
     fun getRecipesByUser(@Query("email") email: String): Call<List<DbRecipe>>
 
     @POST("api/recipes")
-    fun createRecipe(@Body recipe: CreateRecipeRequest): Call<DbRecipe>
+    fun createRecipe(
+        @Header("Authorization") token: String,
+        @Body recipe: CreateRecipeRequest
+    ): Call<DbRecipe>
 
     @DELETE("api/recipes/{id}")
-    fun deleteRecipe(@Path("id") id: String): Call<String>
+    fun deleteRecipe(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Call<String>
 
     @POST("api/recipes/{id}/rate")
-    fun rateRecipe(@Path("id") id: String, @Body body: RateRequest): Call<DbRecipe>
+    fun rateRecipe(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body body: RateRequest
+    ): Call<DbRecipe>
 
     // ── Favorites ─────────────────────────────────────────────────────────────
     @GET("api/favorites")
@@ -40,10 +56,14 @@ interface ApiService {
     ): Call<FavoriteCheckResponse>
 
     @POST("api/favorites")
-    fun addFavorite(@Body body: FavoriteRequest): Call<FavoriteItem>
+    fun addFavorite(
+        @Header("Authorization") token: String,
+        @Body body: FavoriteRequest
+    ): Call<FavoriteItem>
 
     @DELETE("api/favorites")
     fun removeFavorite(
+        @Header("Authorization") token: String,
         @Query("email") email: String,
         @Query("recipeId") recipeId: String
     ): Call<String>
@@ -53,7 +73,10 @@ interface ApiService {
     fun getComments(@Query("recipeId") recipeId: String): Call<List<CommentItem>>
 
     @POST("api/comments")
-    fun postComment(@Body body: CommentRequest): Call<CommentItem>
+    fun postComment(
+        @Header("Authorization") token: String,
+        @Body body: CommentRequest
+    ): Call<CommentItem>
 
     // ── User Stats ────────────────────────────────────────────────────────────
     @GET("api/users/stats")

@@ -205,7 +205,8 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun deleteRecipe(id: String, view: View) {
-        RetrofitClient.instance.deleteRecipe(id)
+        val token = "Bearer ${prefs.getString("access_token", "")}"
+        RetrofitClient.instance.deleteRecipe(token, id)
             .enqueue(object : Callback<String> {
                 override fun onResponse(call: Call<String>, response: Response<String>) {
                     if (response.isSuccessful) {

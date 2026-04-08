@@ -1,5 +1,28 @@
 package com.salgado.cookshare.model
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+data class LoginRequest(val email: String, val password: String)
+
+data class LoginResponse(
+    val message: String?,
+    val firstName: String?,
+    val lastName: String?,
+    val email: String?,
+    val role: String?,
+    val accessToken: String?,
+    val refreshToken: String?
+)
+
+data class RefreshRequest(val refreshToken: String)
+
+data class RegisterRequest(
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val password: String
+)
+
 // ── DB Recipe ─────────────────────────────────────────────────────────────────
 
 data class DbRecipe(
@@ -42,7 +65,7 @@ data class CreateRecipeRequest(
     val createdAt: String
 )
 
-data class RateRequest(val stars: Int)
+data class RateRequest(val stars: Int, val userEmail: String)
 
 // ── Favorites ─────────────────────────────────────────────────────────────────
 
