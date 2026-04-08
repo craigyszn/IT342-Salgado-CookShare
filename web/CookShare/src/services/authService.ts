@@ -16,6 +16,7 @@ export const authService = {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        role: data.role,
       }));
     }
 
@@ -31,7 +32,13 @@ export const authService = {
     return raw ? JSON.parse(raw) : null;
   },
 
-  // keep your existing register and getGoogleAuthUrl unchanged
+  isAdmin: () => {
+    const raw = localStorage.getItem('user');
+    if (!raw) return false;
+    const user = JSON.parse(raw);
+    return user?.role === 'ADMIN';
+  },
+
   register: async (firstName: string, lastName: string, email: string, password: string) => {
     const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
