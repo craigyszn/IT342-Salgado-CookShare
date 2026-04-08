@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.salgado.cookshare.R
 import com.salgado.cookshare.api.RetrofitClient
+import com.salgado.cookshare.model.RegisterRequest
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -89,13 +90,21 @@ class RegisterActivity : AppCompatActivity() {
                         ).show()
                         finish()
                     } else {
-                        Toast.makeText(this@RegisterActivity, "Registration failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@RegisterActivity,
+                            "Registration failed",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
                 override fun onFailure(call: Call<String>, t: Throwable) {
                     btnCreateAccount.isEnabled = true
                     btnCreateAccount.text = "Create Account"
-                    Toast.makeText(this@RegisterActivity, "Network error: ${t.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@RegisterActivity,
+                        "Network error: ${t.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             })
     }

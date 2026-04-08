@@ -11,6 +11,8 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.salgado.cookshare.R
 import com.salgado.cookshare.api.RetrofitClient
+import com.salgado.cookshare.model.LoginRequest
+import com.salgado.cookshare.model.LoginResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

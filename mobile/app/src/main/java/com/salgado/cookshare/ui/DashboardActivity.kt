@@ -68,21 +68,27 @@ class DashboardActivity : AppCompatActivity() {
         fetchDbRecipes()
     }
 
+    // ── Refresh recipes every time dashboard comes back into view ─────────────
+    override fun onResume() {
+        super.onResume()
+        fetchDbRecipes()
+    }
+
     private fun initViews() {
-        tvInitials    = findViewById(R.id.tvInitials)
-        btnAvatar     = findViewById(R.id.btnAvatar)
+        tvInitials      = findViewById(R.id.tvInitials)
+        btnAvatar       = findViewById(R.id.btnAvatar)
         btnCreateRecipe = findViewById(R.id.btnCreateRecipe)
-        etSearch      = findViewById(R.id.etSearch)
+        etSearch        = findViewById(R.id.etSearch)
         categoryContainer = findViewById(R.id.categoryContainer)
-        tvTotalRecipes = findViewById(R.id.tvTotalRecipes)
-        tvAvgRating   = findViewById(R.id.tvAvgRating)
-        rvRecipes     = findViewById(R.id.rvRecipes)
-        progressBar   = findViewById(R.id.progressBar)
-        layoutError   = findViewById(R.id.layoutError)
-        layoutEmpty   = findViewById(R.id.layoutEmpty)
-        tvErrorMessage = findViewById(R.id.tvErrorMessage)
-        btnRetry      = findViewById(R.id.btnRetry)
-        bottomNav     = findViewById(R.id.bottomNav)
+        tvTotalRecipes  = findViewById(R.id.tvTotalRecipes)
+        tvAvgRating     = findViewById(R.id.tvAvgRating)
+        rvRecipes       = findViewById(R.id.rvRecipes)
+        progressBar     = findViewById(R.id.progressBar)
+        layoutError     = findViewById(R.id.layoutError)
+        layoutEmpty     = findViewById(R.id.layoutEmpty)
+        tvErrorMessage  = findViewById(R.id.tvErrorMessage)
+        btnRetry        = findViewById(R.id.btnRetry)
+        bottomNav       = findViewById(R.id.bottomNav)
     }
 
     private fun setupUser() {
@@ -215,7 +221,6 @@ class DashboardActivity : AppCompatActivity() {
 
         when {
             searchQuery.isNotEmpty() -> {
-                // Search: filter DB first then Spoonacular
                 val dbMatches = dbRecipes.filter { r ->
                     r.title.contains(searchQuery, ignoreCase = true) ||
                             r.tags.any { it.contains(searchQuery, ignoreCase = true) } ||
@@ -235,7 +240,6 @@ class DashboardActivity : AppCompatActivity() {
                     })
             }
             activeCategory != "All" -> {
-                // Category: filter DB then Spoonacular
                 val dbCat = dbRecipes.filter { r ->
                     r.tags.any { it.equals(activeCategory, ignoreCase = true) } ||
                             r.category.equals(activeCategory, ignoreCase = true)
@@ -335,21 +339,21 @@ class DashboardActivity : AppCompatActivity() {
 
 // ── DB Recipe mapper ──────────────────────────────────────────────────────────
 fun DbRecipe.toRecipe() = Recipe(
-    id = id,
-    title = title,
-    description = description ?: "",
-    tags = tags ?: emptyList(),
-    rating = rating,
-    reviewCount = reviewCount,
-    prepTime = prepTime ?: "N/A",
-    cookTime = cookTime ?: "N/A",
-    difficulty = difficulty ?: "Easy",
-    author = author ?: "CookShare User",
-    servings = servings,
-    imageUrl = image ?: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
-    ingredients = ingredients ?: emptyList(),
+    id           = id,
+    title        = title,
+    description  = description ?: "",
+    tags         = tags ?: emptyList(),
+    rating       = rating,
+    reviewCount  = reviewCount,
+    prepTime     = prepTime ?: "N/A",
+    cookTime     = cookTime ?: "N/A",
+    difficulty   = difficulty ?: "Easy",
+    author       = author ?: "CookShare User",
+    servings     = servings,
+    imageUrl     = image ?: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
+    ingredients  = ingredients ?: emptyList(),
     instructions = instructions ?: emptyList(),
-    category = category ?: ""
+    category     = category ?: ""
 )
 
 // ── Spoonacular mapper ────────────────────────────────────────────────────────
@@ -365,24 +369,24 @@ fun SpoonacularRecipe.toRecipe(): Recipe {
         ?.replace("&gt;", ">")?.replace("&nbsp;", " ")
         ?.trim()?.take(180) ?: ""
     return Recipe(
-        id = id.toString(),
-        title = title,
-        description = if (cleanSummary.length == 180) "$cleanSummary..." else cleanSummary,
-        tags = buildList {
+        id           = id.toString(),
+        title        = title,
+        description  = if (cleanSummary.length == 180) "$cleanSummary..." else cleanSummary,
+        tags         = buildList {
             dishTypes?.take(2)?.forEach { add(it.replaceFirstChar { c -> c.uppercase() }) }
             diets?.take(1)?.forEach { add(it.replaceFirstChar { c -> c.uppercase() }) }
         },
-        rating = Math.round((spoonacularScore / 20.0) * 10.0) / 10.0,
-        reviewCount = aggregateLikes,
-        prepTime = if (preparationMinutes > 0) "$preparationMinutes mins" else "N/A",
-        cookTime = if (cookingMinutes > 0) "$cookingMinutes mins" else "$readyInMinutes mins",
-        difficulty = difficulty,
-        author = creditsText ?: "Spoonacular",
-        servings = servings,
-        imageUrl = image ?: "",
-        ingredients = extendedIngredients?.map { it.original } ?: emptyList(),
+        rating       = Math.round((spoonacularScore / 20.0) * 10.0) / 10.0,
+        reviewCount  = aggregateLikes,
+        prepTime     = if (preparationMinutes > 0) "$preparationMinutes mins" else "N/A",
+        cookTime     = if (cookingMinutes > 0) "$cookingMinutes mins" else "$readyInMinutes mins",
+        difficulty   = difficulty,
+        author       = creditsText ?: "Spoonacular",
+        servings     = servings,
+        imageUrl     = image ?: "",
+        ingredients  = extendedIngredients?.map { it.original } ?: emptyList(),
         instructions = analyzedInstructions?.firstOrNull()?.steps?.map { it.step }
             ?: listOf("See full recipe for instructions."),
-        category = dishTypes?.firstOrNull() ?: ""
+        category     = dishTypes?.firstOrNull() ?: ""
     )
 }
