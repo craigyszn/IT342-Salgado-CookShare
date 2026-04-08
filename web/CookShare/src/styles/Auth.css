@@ -240,4 +240,74 @@
   .form-row {
     grid-template-columns: 1fr;
   }
+    /* ─── Password Strength ──────────────────────────────────────────────────── */
+
+  .password-strength {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .password-strength__bars {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .password-strength__bar {
+    height: 4px;
+    flex: 1;
+    border-radius: 9999px;
+    background-color: #e5e7eb;
+  }
+
+  .password-strength__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    min-width: 3rem;
+    text-align: right;
+  }
+
+  /* ─── Password Checklist ─────────────────────────────────────────────────── */
+
+  .password-checks {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .password-checks li {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .check--pass {
+    color: #16a34a;
+  }
+
+  .check--fail {
+    color: #9ca3af;
+  }
+
+  /* ─── Password Match ─────────────────────────────────────────────────────── */
+
+  .password-match {
+    font-size: 0.8125rem;
+    margin: 0.375rem 0 0;
+    font-weight: 500;
+  }
+
+  .password-match--ok { color: #16a34a; }
+  .password-match--no { color: #dc2626; }
+
+  /* ─── Disabled submit button ─────────────────────────────────────────────── */
+
+  .auth-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }

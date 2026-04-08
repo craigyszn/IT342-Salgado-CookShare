@@ -15,13 +15,19 @@ public class Recipe {
     private String title;
     private String description;
     private String author;
+    private String userEmail;
     private String image;
     private String prepTime;
     private String cookTime;
     private int servings;
     private String difficulty;
-    private int rating;
-    private int reviewCount;
+
+    // ── Rating fields ─────────────────────────────────────────────────────────
+    // averageRating = totalRatingScore / reviewCount
+    private double rating;         // average rating (0.0 - 5.0)
+    private int reviewCount;       // how many people rated
+    private int totalRatingScore;  // sum of all ratings (for recalculation)
+
     private String category;
     private String createdAt;
 
@@ -48,6 +54,9 @@ public class Recipe {
     public String getAuthor() { return author; }
     public void setAuthor(String author) { this.author = author; }
 
+    public String getUserEmail() { return userEmail; }
+    public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
+
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
 
@@ -63,11 +72,14 @@ public class Recipe {
     public String getDifficulty() { return difficulty; }
     public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
 
-    public int getRating() { return rating; }
-    public void setRating(int rating) { this.rating = rating; }
+    public double getRating() { return rating; }
+    public void setRating(double rating) { this.rating = rating; }
 
     public int getReviewCount() { return reviewCount; }
     public void setReviewCount(int reviewCount) { this.reviewCount = reviewCount; }
+
+    public int getTotalRatingScore() { return totalRatingScore; }
+    public void setTotalRatingScore(int totalRatingScore) { this.totalRatingScore = totalRatingScore; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }

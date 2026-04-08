@@ -38,4 +38,8 @@ public class User {
     private String lastname;
 
     private LocalDateTime createdAt;
+
+    // ── Role: "USER" or "ADMIN" (defaults to USER) ────────────────────────────
+    @Column(nullable = false)
+    private String role = "USER";
 }

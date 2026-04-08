@@ -346,7 +346,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
                       const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}/rate`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stars: star }),
+                        body: JSON.stringify({ stars: star, userEmail: user?.email ?? '' }),
                       });
                       if (res.ok) {
                         const updated = await res.json();
