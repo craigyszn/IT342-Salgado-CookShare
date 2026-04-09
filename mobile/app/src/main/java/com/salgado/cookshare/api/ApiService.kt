@@ -46,6 +46,12 @@ interface ApiService {
         @Body body: RateRequest
     ): Call<DbRecipe>
 
+    // ── Nutrition ─────────────────────────────────────────────────────────────
+    @GET("api/recipes/{id}/nutrition")
+    fun getNutrition(
+        @Path("id") id: String
+    ): Call<NutritionResponse>
+
     // ── Image Upload ──────────────────────────────────────────────────────────
     @Multipart
     @POST("api/recipes/upload-image")

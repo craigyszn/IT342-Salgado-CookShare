@@ -42,7 +42,7 @@
             android:id="@+id/btnBack"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="← Back"
+            android:text="Back"
             android:textSize="13sp"
             android:background="@drawable/bg_chip_inactive"
             android:textColor="#374151"
@@ -93,12 +93,11 @@
                     android:textSize="14sp" android:textColor="#111827"
                     android:textColorHint="#9CA3AF" android:layout_marginBottom="12dp"/>
 
-                <!-- ── Recipe Image Upload ── -->
+                <!-- Recipe Image Upload -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="Recipe Image" android:textSize="12sp" android:textStyle="bold"
                     android:textColor="#F97316" android:layout_marginBottom="4dp"/>
 
-                <!-- Image Preview -->
                 <ImageView
                     android:id="@+id/ivImagePreview"
                     android:layout_width="match_parent"
@@ -108,20 +107,18 @@
                     android:visibility="gone"
                     android:layout_marginBottom="8dp"/>
 
-                <!-- Upload Button -->
                 <Button
                     android:id="@+id/btnUploadImage"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:background="@drawable/bg_chip_inactive"
-                    android:text="📷 Upload Image"
+                    android:text="Upload Image"
                     android:textColor="#374151"
                     android:textSize="14sp"
                     android:stateListAnimator="@null"
                     android:layout_marginBottom="6dp"
                     style="@android:style/Widget.Button"/>
 
-                <!-- Upload Status -->
                 <TextView
                     android:id="@+id/tvImageStatus"
                     android:layout_width="wrap_content"
@@ -130,7 +127,6 @@
                     android:textSize="12sp"
                     android:textColor="#22C55E"
                     android:visibility="gone"/>
-
             </LinearLayout>
 
             <!-- Recipe Details -->
@@ -148,7 +144,6 @@
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginBottom="12dp">
-
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="8dp">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -159,7 +154,6 @@
                             android:hint="15 mins" android:paddingStart="14dp" android:paddingEnd="14dp"
                             android:textSize="13sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
                     </LinearLayout>
-
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -174,7 +168,6 @@
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginBottom="12dp">
-
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="8dp">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -186,7 +179,6 @@
                             android:paddingStart="14dp" android:paddingEnd="14dp"
                             android:textSize="13sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
                     </LinearLayout>
-
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -214,7 +206,7 @@
                     android:textSize="14sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
             </LinearLayout>
 
-            <!-- Ingredients -->
+            <!-- Ingredients (dynamic) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -227,17 +219,30 @@
                     android:text="Ingredients *" android:textSize="15sp" android:textStyle="bold"
                     android:textColor="#111827" android:layout_marginBottom="6dp"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="One ingredient per line" android:textSize="12sp"
+                    android:text="List all the ingredients needed" android:textSize="12sp"
                     android:textColor="#6B7280" android:layout_marginBottom="10dp"/>
-                <EditText android:id="@+id/etIngredients" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:background="@drawable/bg_input"
-                    android:hint="2 cups flour&#10;1 tsp salt&#10;3 eggs"
-                    android:inputType="textMultiLine" android:minLines="5" android:gravity="top"
-                    android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingTop="10dp"
-                    android:textSize="14sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
+
+                <LinearLayout
+                    android:id="@+id/ingredientsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="10dp"/>
+
+                <Button
+                    android:id="@+id/btnAddIngredient"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_button_orange"
+                    android:text="+ Add Ingredient"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:stateListAnimator="@null"
+                    style="@android:style/Widget.Button"/>
             </LinearLayout>
 
-            <!-- Instructions -->
+            <!-- Instructions (dynamic) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -250,14 +255,27 @@
                     android:text="Instructions *" android:textSize="15sp" android:textStyle="bold"
                     android:textColor="#111827" android:layout_marginBottom="6dp"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="One step per line" android:textSize="12sp"
+                    android:text="Step-by-step cooking instructions" android:textSize="12sp"
                     android:textColor="#6B7280" android:layout_marginBottom="10dp"/>
-                <EditText android:id="@+id/etInstructions" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:background="@drawable/bg_input"
-                    android:hint="Boil water&#10;Cook pasta for 10 minutes&#10;Add sauce and serve"
-                    android:inputType="textMultiLine" android:minLines="5" android:gravity="top"
-                    android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingTop="10dp"
-                    android:textSize="14sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
+
+                <LinearLayout
+                    android:id="@+id/instructionsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="10dp"/>
+
+                <Button
+                    android:id="@+id/btnAddInstruction"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_button_orange"
+                    android:text="+ Add Instruction"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:stateListAnimator="@null"
+                    style="@android:style/Widget.Button"/>
             </LinearLayout>
 
             <!-- Publish Button -->

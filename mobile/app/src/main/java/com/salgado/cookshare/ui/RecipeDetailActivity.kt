@@ -30,7 +30,7 @@ class RecipeDetailActivity : AppCompatActivity() {
     private lateinit var ingredientsContainer: LinearLayout
     private lateinit var instructionsContainer: LinearLayout
     private lateinit var starsContainer: LinearLayout
-    private lateinit var tvRatedMessage: TextView  // ← NEW
+    private lateinit var tvRatedMessage: TextView
     private lateinit var tvCommentsTitle: TextView
     private lateinit var etComment: EditText
     private lateinit var btnPostComment: Button
@@ -38,6 +38,14 @@ class RecipeDetailActivity : AppCompatActivity() {
     private lateinit var tvAuthor: TextView
     private lateinit var toolbar: Toolbar
     private lateinit var btnFavorite: ImageView
+
+    // ── Nutrition views ───────────────────────────────────────────────────────
+    private lateinit var nutritionSection: LinearLayout
+    private lateinit var tvCalories: TextView
+    private lateinit var tvProtein: TextView
+    private lateinit var tvCarbs: TextView
+    private lateinit var tvFat: TextView
+    private lateinit var tvFiber: TextView
 
     private var userRating = 0
     private var hasRated = false
@@ -54,10 +62,11 @@ class RecipeDetailActivity : AppCompatActivity() {
         setupToolbar()
         loadRecipeData()
         setupStars()
-        checkMyRating()  // ← NEW: check if user already rated
+        checkMyRating()
         setupComments()
         loadComments()
         loadFavoriteStatus()
+        loadNutrition()  // ← NEW
     }
 
     private fun initViews() {
@@ -73,7 +82,7 @@ class RecipeDetailActivity : AppCompatActivity() {
         ingredientsContainer  = findViewById(R.id.ingredientsContainer)
         instructionsContainer = findViewById(R.id.instructionsContainer)
         starsContainer        = findViewById(R.id.starsContainer)
-        tvRatedMessage        = findViewById(R.id.tvRatedMessage)  // ← NEW
+        tvRatedMessage        = findViewById(R.id.tvRatedMessage)
         tvCommentsTitle       = findViewById(R.id.tvCommentsTitle)
         etComment             = findViewById(R.id.etComment)
         btnPostComment        = findViewById(R.id.btnPostComment)
@@ -81,6 +90,15 @@ class RecipeDetailActivity : AppCompatActivity() {
         tvAuthor              = findViewById(R.id.tvAuthor)
         toolbar               = findViewById(R.id.toolbar)
         btnFavorite           = findViewById(R.id.btnFavorite)
+
+        // ── Nutrition views ───────────────────────────────────────────────────
+        nutritionSection      = findViewById(R.id.nutritionSection)
+        tvCalories            = findViewById(R.id.tvCalories)
+        tvProtein             = findViewById(R.id.tvProtein)
+        tvCarbs               = findViewById(R.id.tvCarbs)
+        tvFat                 = findViewById(R.id.tvFat)
+        tvFiber               = findViewById(R.id.tvFiber)
+
         prefs = getSharedPreferences("cookshare_prefs", MODE_PRIVATE)
     }
 
@@ -165,6 +183,31 @@ class RecipeDetailActivity : AppCompatActivity() {
         btnFavorite.setOnClickListener { toggleFavorite() }
     }
 
+    // ── Nutrition ──────────────────────────────────────────────────────────────
+    private fun loadNutrition() {
+        if (recipeId.isEmpty()) return
+        RetrofitClient.instance.getNutrition(recipeId)
+            .enqueue(object : Callback<NutritionResponse> {
+                override fun onResponse(
+                    call: Call<NutritionResponse>,
+                    response: Response<NutritionResponse>
+                ) {
+                    val data = response.body() ?: return
+                    if (data.calories > 0 || data.protein > 0) {
+                        runOnUiThread {
+                            nutritionSection.visibility = View.VISIBLE
+                            tvCalories.text = "${data.calories.toInt()}\nkcal"
+                            tvProtein.text  = "${"%.1f".format(data.protein)}g\nProtein"
+                            tvCarbs.text    = "${"%.1f".format(data.carbs)}g\nCarbs"
+                            tvFat.text      = "${"%.1f".format(data.fat)}g\nFat"
+                            tvFiber.text    = "${"%.1f".format(data.fiber)}g\nFiber"
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<NutritionResponse>, t: Throwable) {}
+            })
+    }
+
     // ── Rating ─────────────────────────────────────────────────────────────────
 
     private fun updateRatingDisplay() {
@@ -184,7 +227,6 @@ class RecipeDetailActivity : AppCompatActivity() {
         }
     }
 
-    // ── Check if user already rated ───────────────────────────────────────────
     private fun checkMyRating() {
         val user = getUser() ?: return
         val email = user.email ?: return
@@ -200,7 +242,6 @@ class RecipeDetailActivity : AppCompatActivity() {
                         hasRated = true
                         userRating = body.stars
                         runOnUiThread {
-                            // Fill stars with user's rating
                             for (i in 0 until starsContainer.childCount) {
                                 val star = starsContainer.getChildAt(i) as ImageView
                                 star.setColorFilter(
@@ -208,7 +249,6 @@ class RecipeDetailActivity : AppCompatActivity() {
                                     else 0xFFD1D5DB.toInt()
                                 )
                             }
-                            // Show rated message, hide stars
                             starsContainer.visibility = View.GONE
                             tvRatedMessage.visibility = View.VISIBLE
                             tvRatedMessage.text =
@@ -230,7 +270,6 @@ class RecipeDetailActivity : AppCompatActivity() {
             star.setColorFilter(if (i < rating) 0xFFF97316.toInt() else 0xFFD1D5DB.toInt())
         }
 
-        // Hide stars, show rated message
         starsContainer.visibility = View.GONE
         tvRatedMessage.visibility = View.VISIBLE
         tvRatedMessage.text = "You rated this recipe $rating star${if (rating > 1) "s" else ""}! Thank you."
