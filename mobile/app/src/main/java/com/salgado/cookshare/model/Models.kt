@@ -122,5 +122,14 @@ data class MyRatingResponse(
     val rated: Boolean,
     val stars: Int
 )
+data class NutritionResponse(
+    val id: Long?,
+    val recipeId: String,
+    val calories: Double,
+    val protein: Double,
+    val carbs: Double,
+    val fat: Double,
+    val fiber: Double
+)
 
 data class UserCountResponse(val count: Long)
