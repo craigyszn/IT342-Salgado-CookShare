@@ -44,6 +44,8 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@drawable/bg_avatar_circle">
+
+            <!-- Initials fallback -->
             <TextView
                 android:id="@+id/tvInitials"
                 android:layout_width="wrap_content"
@@ -52,11 +54,20 @@
                 android:text="J"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"/>
+
+            <!-- Profile photo — shown when available -->
+            <ImageView
+                android:id="@+id/ivDashboardAvatar"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"/>
+
         </FrameLayout>
 
     </LinearLayout>
 
-    <!-- CONTENT — NestedScrollView fixes RecyclerView scroll conflict -->
+    <!-- CONTENT -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -241,7 +252,7 @@
                     android:textColor="#6B7280"/>
             </LinearLayout>
 
-            <!-- RECYCLER VIEW — nestedScrollingEnabled="false" is the key fix -->
+            <!-- RECYCLER VIEW -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvRecipes"
                 android:layout_width="match_parent"

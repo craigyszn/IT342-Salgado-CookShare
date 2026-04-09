@@ -93,15 +93,44 @@
                     android:textSize="14sp" android:textColor="#111827"
                     android:textColorHint="#9CA3AF" android:layout_marginBottom="12dp"/>
 
+                <!-- ── Recipe Image Upload ── -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Image URL (optional)" android:textSize="12sp" android:textStyle="bold"
+                    android:text="Recipe Image" android:textSize="12sp" android:textStyle="bold"
                     android:textColor="#F97316" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etImageUrl" android:layout_width="match_parent"
-                    android:layout_height="48dp" android:background="@drawable/bg_input"
-                    android:hint="https://example.com/image.jpg" android:inputType="textUri"
-                    android:paddingStart="14dp" android:paddingEnd="14dp"
-                    android:textSize="14sp" android:textColor="#111827"
-                    android:textColorHint="#9CA3AF"/>
+
+                <!-- Image Preview -->
+                <ImageView
+                    android:id="@+id/ivImagePreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:scaleType="centerCrop"
+                    android:background="#F3F4F6"
+                    android:visibility="gone"
+                    android:layout_marginBottom="8dp"/>
+
+                <!-- Upload Button -->
+                <Button
+                    android:id="@+id/btnUploadImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_chip_inactive"
+                    android:text="📷 Upload Image"
+                    android:textColor="#374151"
+                    android:textSize="14sp"
+                    android:stateListAnimator="@null"
+                    android:layout_marginBottom="6dp"
+                    style="@android:style/Widget.Button"/>
+
+                <!-- Upload Status -->
+                <TextView
+                    android:id="@+id/tvImageStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="#22C55E"
+                    android:visibility="gone"/>
+
             </LinearLayout>
 
             <!-- Recipe Details -->

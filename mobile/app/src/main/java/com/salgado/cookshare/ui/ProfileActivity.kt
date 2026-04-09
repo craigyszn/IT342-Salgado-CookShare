@@ -1,20 +1,30 @@
 package com.salgado.cookshare.ui
 
+import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import com.salgado.cookshare.R
 import com.salgado.cookshare.api.RetrofitClient
 import com.salgado.cookshare.model.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.File
+import java.io.FileOutputStream
 
 class ProfileActivity : AppCompatActivity() {
 
@@ -22,7 +32,8 @@ class ProfileActivity : AppCompatActivity() {
 
     private lateinit var btnBack: Button
     private lateinit var tvAvatarInitials: TextView
-    private lateinit var ivAvatar: android.widget.ImageView
+    private lateinit var ivAvatar: ImageView
+    private lateinit var btnUploadPhoto: Button
     private lateinit var tvRecipesShared: TextView
     private lateinit var tvFavorites: TextView
     private lateinit var tvComments: TextView
@@ -31,22 +42,32 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var profileContent: LinearLayout
     private lateinit var recipesContent: LinearLayout
 
-    // Header name/email (avatar section)
     private lateinit var tvFirstName: TextView
     private lateinit var tvLastName: TextView
     private lateinit var tvEmail: TextView
-
-    // Personal Info fields (profile tab)
     private lateinit var tvProfileFirstName: TextView
     private lateinit var tvProfileLastName: TextView
     private lateinit var tvProfileEmail: TextView
     private lateinit var tvMemberSince: TextView
 
-    // My Recipes
     private lateinit var recipesContainer: LinearLayout
     private lateinit var tvRecipesEmpty: TextView
     private lateinit var progressRecipes: ProgressBar
     private lateinit var btnCreateNew: Button
+
+    // ── Photo picker launcher ─────────────────────────────────────────────────
+    private val photoPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.data ?: return@registerForActivityResult
+            // Show preview immediately
+            ivAvatar.setImageURI(uri)
+            ivAvatar.visibility = View.VISIBLE
+            tvAvatarInitials.visibility = View.GONE
+            uploadProfilePhoto(uri)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +76,7 @@ class ProfileActivity : AppCompatActivity() {
         initViews()
         loadUserInfo()
         loadStats()
+        loadProfilePhoto()
         setupTabs()
     }
 
@@ -62,6 +84,7 @@ class ProfileActivity : AppCompatActivity() {
         btnBack             = findViewById(R.id.btnBack)
         tvAvatarInitials    = findViewById(R.id.tvAvatarInitials)
         ivAvatar            = findViewById(R.id.ivAvatar)
+        btnUploadPhoto      = findViewById(R.id.btnUploadPhoto)
         tvRecipesShared     = findViewById(R.id.tvRecipesShared)
         tvFavorites         = findViewById(R.id.tvFavorites)
         tvComments          = findViewById(R.id.tvComments)
@@ -85,12 +108,14 @@ class ProfileActivity : AppCompatActivity() {
         btnCreateNew.setOnClickListener {
             startActivity(Intent(this, CreateRecipeActivity::class.java))
         }
+        btnUploadPhoto.setOnClickListener {
+            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            photoPickerLauncher.launch(intent)
+        }
     }
 
     private fun loadUserInfo() {
         val user = getUser() ?: return
-
-        // Avatar section
         tvFirstName.text = user.firstName ?: ""
         tvLastName.text  = user.lastName ?: ""
         tvEmail.text     = user.email ?: ""
@@ -98,11 +123,76 @@ class ProfileActivity : AppCompatActivity() {
         val initials = "${user.firstName?.firstOrNull() ?: ""}${user.lastName?.firstOrNull() ?: ""}".uppercase()
         tvAvatarInitials.text = initials.ifEmpty { "U" }
 
-        // Personal Info fields
         tvProfileFirstName.text = user.firstName ?: ""
         tvProfileLastName.text  = user.lastName ?: ""
         tvProfileEmail.text     = user.email ?: ""
         tvMemberSince.text      = "CookShare Member"
+    }
+
+    // ── Load profile photo from backend ───────────────────────────────────────
+    private fun loadProfilePhoto() {
+        val user = getUser() ?: return
+        RetrofitClient.instance.getProfilePhoto(user.email ?: "")
+            .enqueue(object : Callback<ProfilePhotoResponse> {
+                override fun onResponse(
+                    call: Call<ProfilePhotoResponse>,
+                    response: Response<ProfilePhotoResponse>
+                ) {
+                    val photoUrl = response.body()?.profilePhotoUrl
+                    if (!photoUrl.isNullOrEmpty()) {
+                        ivAvatar.visibility = View.VISIBLE
+                        tvAvatarInitials.visibility = View.GONE
+                        Glide.with(this@ProfileActivity)
+                            .load(photoUrl)
+                            .circleCrop()
+                            .into(ivAvatar)
+                    }
+                }
+                override fun onFailure(call: Call<ProfilePhotoResponse>, t: Throwable) {}
+            })
+    }
+
+    // ── Upload profile photo to Supabase via Spring Boot ──────────────────────
+    private fun uploadProfilePhoto(uri: Uri) {
+        val user = getUser() ?: return
+        btnUploadPhoto.isEnabled = false
+        btnUploadPhoto.text = "Uploading..."
+
+        val file = uriToFile(uri)
+        val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
+        val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
+        val emailBody = (user.email ?: "").toRequestBody("text/plain".toMediaTypeOrNull())
+
+        RetrofitClient.instance.uploadProfilePhoto(part, emailBody)
+            .enqueue(object : Callback<ProfilePhotoResponse> {
+                override fun onResponse(
+                    call: Call<ProfilePhotoResponse>,
+                    response: Response<ProfilePhotoResponse>
+                ) {
+                    btnUploadPhoto.isEnabled = true
+                    btnUploadPhoto.text = "Change Photo"
+                    if (response.isSuccessful) {
+                        val photoUrl = response.body()?.profilePhotoUrl
+                        if (!photoUrl.isNullOrEmpty()) {
+                            Glide.with(this@ProfileActivity)
+                                .load(photoUrl)
+                                .circleCrop()
+                                .into(ivAvatar)
+                        }
+                        Toast.makeText(this@ProfileActivity,
+                            "Profile photo updated!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@ProfileActivity,
+                            "Upload failed (${response.code()})", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<ProfilePhotoResponse>, t: Throwable) {
+                    btnUploadPhoto.isEnabled = true
+                    btnUploadPhoto.text = "Upload Photo"
+                    Toast.makeText(this@ProfileActivity,
+                        "Upload failed: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
     }
 
     private fun loadStats() {
@@ -160,7 +250,10 @@ class ProfileActivity : AppCompatActivity() {
 
         RetrofitClient.instance.getRecipesByUser(user.email ?: "")
             .enqueue(object : Callback<List<DbRecipe>> {
-                override fun onResponse(call: Call<List<DbRecipe>>, response: Response<List<DbRecipe>>) {
+                override fun onResponse(
+                    call: Call<List<DbRecipe>>,
+                    response: Response<List<DbRecipe>>
+                ) {
                     progressRecipes.visibility = View.GONE
                     val recipes = response.body() ?: emptyList()
                     if (recipes.isEmpty()) {
@@ -193,7 +286,7 @@ class ProfileActivity : AppCompatActivity() {
             "Hard"   -> { tvDiff.setTextColor(0xFFB91C1C.toInt()); tvDiff.setBackgroundResource(R.drawable.bg_badge_hard) }
         }
 
-        val ivImage = view.findViewById<android.widget.ImageView>(R.id.ivRecipeThumb)
+        val ivImage = view.findViewById<ImageView>(R.id.ivRecipeThumb)
         Glide.with(this).load(recipe.image)
             .placeholder(R.drawable.ic_chef_hat).centerCrop().into(ivImage)
 
@@ -219,6 +312,16 @@ class ProfileActivity : AppCompatActivity() {
                     Toast.makeText(this@ProfileActivity, "Failed to delete", Toast.LENGTH_SHORT).show()
                 }
             })
+    }
+
+    // ── Convert Uri to File ───────────────────────────────────────────────────
+    private fun uriToFile(uri: Uri): File {
+        val inputStream = contentResolver.openInputStream(uri)!!
+        val tempFile = File.createTempFile("upload_", ".jpg", cacheDir)
+        FileOutputStream(tempFile).use { output ->
+            inputStream.copyTo(output)
+        }
+        return tempFile
     }
 
     private fun getUser(): LoginResponse? {

@@ -1,19 +1,27 @@
 package com.salgado.cookshare.ui
 
+import android.app.Activity
+import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.View
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.salgado.cookshare.R
 import com.salgado.cookshare.api.RetrofitClient
-import com.salgado.cookshare.model.CreateRecipeRequest
-import com.salgado.cookshare.model.DbRecipe
-import com.salgado.cookshare.model.LoginResponse
+import com.salgado.cookshare.model.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -23,7 +31,6 @@ class CreateRecipeActivity : AppCompatActivity() {
     private lateinit var btnBack: Button
     private lateinit var etTitle: EditText
     private lateinit var etDescription: EditText
-    private lateinit var etImageUrl: EditText
     private lateinit var etPrepTime: EditText
     private lateinit var etCookTime: EditText
     private lateinit var etServings: EditText
@@ -34,6 +41,23 @@ class CreateRecipeActivity : AppCompatActivity() {
     private lateinit var etInstructions: EditText
     private lateinit var btnPublish: Button
     private lateinit var progressBar: ProgressBar
+    private lateinit var btnUploadImage: Button
+    private lateinit var ivImagePreview: ImageView
+    private lateinit var tvImageStatus: TextView
+
+    private var uploadedImageUrl: String = ""
+
+    // ── Image picker launcher ─────────────────────────────────────────────────
+    private val imagePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.data ?: return@registerForActivityResult
+            ivImagePreview.setImageURI(uri)
+            ivImagePreview.visibility = View.VISIBLE
+            uploadImageToSupabase(uri)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +72,6 @@ class CreateRecipeActivity : AppCompatActivity() {
         btnBack           = findViewById(R.id.btnBack)
         etTitle           = findViewById(R.id.etTitle)
         etDescription     = findViewById(R.id.etDescription)
-        etImageUrl        = findViewById(R.id.etImageUrl)
         etPrepTime        = findViewById(R.id.etPrepTime)
         etCookTime        = findViewById(R.id.etCookTime)
         etServings        = findViewById(R.id.etServings)
@@ -59,6 +82,9 @@ class CreateRecipeActivity : AppCompatActivity() {
         etInstructions    = findViewById(R.id.etInstructions)
         btnPublish        = findViewById(R.id.btnPublish)
         progressBar       = findViewById(R.id.progressBar)
+        btnUploadImage    = findViewById(R.id.btnUploadImage)
+        ivImagePreview    = findViewById(R.id.ivImagePreview)
+        tvImageStatus     = findViewById(R.id.tvImageStatus)
     }
 
     private fun setupSpinners() {
@@ -75,12 +101,47 @@ class CreateRecipeActivity : AppCompatActivity() {
     private fun setupListeners() {
         btnBack.setOnClickListener { finish() }
         btnPublish.setOnClickListener { handlePublish() }
+        btnUploadImage.setOnClickListener {
+            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            imagePickerLauncher.launch(intent)
+        }
+    }
+
+    // ── Upload image to Supabase via Spring Boot ──────────────────────────────
+    private fun uploadImageToSupabase(uri: Uri) {
+        tvImageStatus.text = "Uploading..."
+        tvImageStatus.visibility = View.VISIBLE
+        btnPublish.isEnabled = false
+
+        val file = uriToFile(uri)
+        val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
+        val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
+
+        RetrofitClient.instance.uploadRecipeImage(part)
+            .enqueue(object : Callback<ImageUploadResponse> {
+                override fun onResponse(
+                    call: Call<ImageUploadResponse>,
+                    response: Response<ImageUploadResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        uploadedImageUrl = response.body()?.imageUrl ?: ""
+                        tvImageStatus.text = "✓ Image uploaded!"
+                        btnPublish.isEnabled = true
+                    } else {
+                        tvImageStatus.text = "Upload failed. Try again."
+                        btnPublish.isEnabled = true
+                    }
+                }
+                override fun onFailure(call: Call<ImageUploadResponse>, t: Throwable) {
+                    tvImageStatus.text = "Upload failed: ${t.message}"
+                    btnPublish.isEnabled = true
+                }
+            })
     }
 
     private fun handlePublish() {
         val title        = etTitle.text.toString().trim()
         val description  = etDescription.text.toString().trim()
-        val imageUrl     = etImageUrl.text.toString().trim()
         val prepTime     = etPrepTime.text.toString().trim()
         val cookTime     = etCookTime.text.toString().trim()
         val servings     = etServings.text.toString().trim()
@@ -118,7 +179,9 @@ class CreateRecipeActivity : AppCompatActivity() {
             description  = description,
             author       = authorName,
             userEmail    = email,
-            image        = imageUrl.ifEmpty { "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400" },
+            image        = uploadedImageUrl.ifEmpty {
+                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400"
+            },
             prepTime     = prepTime.ifEmpty { "N/A" },
             cookTime     = cookTime.ifEmpty { "N/A" },
             servings     = servings.toIntOrNull() ?: 4,
@@ -133,7 +196,6 @@ class CreateRecipeActivity : AppCompatActivity() {
         btnPublish.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
-        // ── Pass JWT token in Authorization header ─────────────────────────────
         val token = "Bearer ${prefs.getString("access_token", "")}"
 
         RetrofitClient.instance.createRecipe(token, request).enqueue(object : Callback<DbRecipe> {
@@ -156,6 +218,16 @@ class CreateRecipeActivity : AppCompatActivity() {
                     "Network error: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+
+    // ── Convert Uri to File ───────────────────────────────────────────────────
+    private fun uriToFile(uri: Uri): File {
+        val inputStream = contentResolver.openInputStream(uri)!!
+        val tempFile = File.createTempFile("upload_", ".jpg", cacheDir)
+        FileOutputStream(tempFile).use { output ->
+            inputStream.copyTo(output)
+        }
+        return tempFile
     }
 
     private fun getUser(): LoginResponse? {

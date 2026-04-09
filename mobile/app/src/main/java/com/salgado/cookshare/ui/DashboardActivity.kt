@@ -10,6 +10,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.gson.Gson
 import com.salgado.cookshare.R
@@ -22,6 +23,7 @@ import retrofit2.Response
 class DashboardActivity : AppCompatActivity() {
 
     private lateinit var tvInitials: TextView
+    private lateinit var ivDashboardAvatar: ImageView  // ← NEW
     private lateinit var btnAvatar: FrameLayout
     private lateinit var btnCreateRecipe: Button
     private lateinit var etSearch: EditText
@@ -68,27 +70,28 @@ class DashboardActivity : AppCompatActivity() {
         fetchDbRecipes()
     }
 
-    // ── Refresh recipes every time dashboard comes back into view ─────────────
     override fun onResume() {
         super.onResume()
+        setupUser()  // ← reload avatar when coming back from profile
         fetchDbRecipes()
     }
 
     private fun initViews() {
-        tvInitials      = findViewById(R.id.tvInitials)
-        btnAvatar       = findViewById(R.id.btnAvatar)
-        btnCreateRecipe = findViewById(R.id.btnCreateRecipe)
-        etSearch        = findViewById(R.id.etSearch)
+        tvInitials        = findViewById(R.id.tvInitials)
+        ivDashboardAvatar = findViewById(R.id.ivDashboardAvatar)  // ← NEW
+        btnAvatar         = findViewById(R.id.btnAvatar)
+        btnCreateRecipe   = findViewById(R.id.btnCreateRecipe)
+        etSearch          = findViewById(R.id.etSearch)
         categoryContainer = findViewById(R.id.categoryContainer)
-        tvTotalRecipes  = findViewById(R.id.tvTotalRecipes)
-        tvAvgRating     = findViewById(R.id.tvAvgRating)
-        rvRecipes       = findViewById(R.id.rvRecipes)
-        progressBar     = findViewById(R.id.progressBar)
-        layoutError     = findViewById(R.id.layoutError)
-        layoutEmpty     = findViewById(R.id.layoutEmpty)
-        tvErrorMessage  = findViewById(R.id.tvErrorMessage)
-        btnRetry        = findViewById(R.id.btnRetry)
-        bottomNav       = findViewById(R.id.bottomNav)
+        tvTotalRecipes    = findViewById(R.id.tvTotalRecipes)
+        tvAvgRating       = findViewById(R.id.tvAvgRating)
+        rvRecipes         = findViewById(R.id.rvRecipes)
+        progressBar       = findViewById(R.id.progressBar)
+        layoutError       = findViewById(R.id.layoutError)
+        layoutEmpty       = findViewById(R.id.layoutEmpty)
+        tvErrorMessage    = findViewById(R.id.tvErrorMessage)
+        btnRetry          = findViewById(R.id.btnRetry)
+        bottomNav         = findViewById(R.id.bottomNav)
     }
 
     private fun setupUser() {
@@ -97,6 +100,39 @@ class DashboardActivity : AppCompatActivity() {
         if (userData != null) {
             val user = Gson().fromJson(userData, LoginResponse::class.java)
             tvInitials.text = user.firstName?.firstOrNull()?.uppercaseChar()?.toString() ?: "U"
+
+            // ── Load profile photo from backend ───────────────────────────────
+            val email = user.email ?: return
+            RetrofitClient.instance.getProfilePhoto(email)
+                .enqueue(object : Callback<ProfilePhotoResponse> {
+                    override fun onResponse(
+                        call: Call<ProfilePhotoResponse>,
+                        response: Response<ProfilePhotoResponse>
+                    ) {
+                        val photoUrl = response.body()?.profilePhotoUrl
+                        if (!photoUrl.isNullOrEmpty()) {
+                            runOnUiThread {
+                                ivDashboardAvatar.visibility = View.VISIBLE
+                                tvInitials.visibility = View.GONE
+                                Glide.with(this@DashboardActivity)
+                                    .load(photoUrl)
+                                    .circleCrop()
+                                    .into(ivDashboardAvatar)
+                            }
+                        } else {
+                            runOnUiThread {
+                                ivDashboardAvatar.visibility = View.GONE
+                                tvInitials.visibility = View.VISIBLE
+                            }
+                        }
+                    }
+                    override fun onFailure(call: Call<ProfilePhotoResponse>, t: Throwable) {
+                        runOnUiThread {
+                            ivDashboardAvatar.visibility = View.GONE
+                            tvInitials.visibility = View.VISIBLE
+                        }
+                    }
+                })
         }
     }
 
@@ -186,8 +222,6 @@ class DashboardActivity : AppCompatActivity() {
         }
         btnRetry.setOnClickListener { fetchDbRecipes() }
     }
-
-    // ── Fetch DB recipes first, then Spoonacular ───────────────────────────────
 
     private fun fetchDbRecipes() {
         showLoading()
