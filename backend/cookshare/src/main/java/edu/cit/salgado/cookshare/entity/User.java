@@ -39,7 +39,9 @@ public class User {
 
     private LocalDateTime createdAt;
 
-    // ── Role: "USER" or "ADMIN" (defaults to USER) ────────────────────────────
     @Column(nullable = false)
     private String role = "USER";
+
+    @Column(name = "profile_photo_url")
+    private String profilePhotoUrl;  // ← NEW
 }
