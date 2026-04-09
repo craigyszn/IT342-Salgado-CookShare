@@ -74,16 +74,16 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="20dp">
+                    android:layout_marginBottom="12dp">
 
                     <FrameLayout
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
-                        android:background="@drawable/bg_logo_circle">
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/bg_avatar_circle">
                         <ImageView
                             android:id="@+id/ivAvatar"
-                            android:layout_width="64dp"
-                            android:layout_height="64dp"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
                             android:scaleType="centerCrop"
                             android:visibility="gone"/>
                         <TextView
@@ -92,7 +92,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
                             android:text="U"
-                            android:textSize="22sp"
+                            android:textSize="26sp"
                             android:textStyle="bold"
                             android:textColor="#FFFFFF"/>
                     </FrameLayout>
@@ -130,6 +130,19 @@
                             android:textColor="#6B7280"/>
                     </LinearLayout>
                 </LinearLayout>
+
+                <!-- ── Upload Photo Button ── -->
+                <Button
+                    android:id="@+id/btnUploadPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_chip_inactive"
+                    android:text="📷 Upload Photo"
+                    android:textColor="#374151"
+                    android:textSize="13sp"
+                    android:stateListAnimator="@null"
+                    android:layout_marginBottom="20dp"
+                    style="@android:style/Widget.Button"/>
 
                 <!-- Stats Row -->
                 <TextView
@@ -247,6 +260,7 @@
                     android:focusable="true"/>
             </LinearLayout>
 
+            <!-- Profile Content -->
             <LinearLayout
                 android:id="@+id/profileContent"
                 android:layout_width="match_parent"
@@ -317,7 +331,6 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <!-- Create Button -->
                 <Button
                     android:id="@+id/btnCreateNew"
                     android:layout_width="match_parent"

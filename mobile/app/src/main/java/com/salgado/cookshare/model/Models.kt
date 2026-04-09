@@ -111,5 +111,16 @@ data class UserStats(
     val favorites: Long,
     val comments: Long
 )
+data class ImageUploadResponse(
+    val imageUrl: String
+)
+
+data class ProfilePhotoResponse(
+    val profilePhotoUrl: String
+)
+data class MyRatingResponse(
+    val rated: Boolean,
+    val stars: Int
+)
 
 data class UserCountResponse(val count: Long)

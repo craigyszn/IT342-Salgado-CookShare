@@ -251,8 +251,25 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="Rate this recipe" android:textSize="18sp" android:textStyle="bold"
                     android:textColor="#111827" android:layout_marginBottom="14dp"/>
+
+                <!-- Stars -->
                 <LinearLayout android:id="@+id/starsContainer" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:orientation="horizontal"/>
+                    android:layout_height="wrap_content" android:orientation="horizontal"
+                    android:layout_marginBottom="8dp"/>
+
+                <!-- ── Already rated message ── -->
+                <TextView
+                    android:id="@+id/tvRatedMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="13sp"
+                    android:textColor="#F97316"
+                    android:background="#FFF7ED"
+                    android:padding="12dp"
+                    android:visibility="gone"
+                    android:layout_marginTop="4dp"/>
+
             </LinearLayout>
 
             <View android:layout_width="match_parent" android:layout_height="8dp" android:background="#F3F4F6"/>

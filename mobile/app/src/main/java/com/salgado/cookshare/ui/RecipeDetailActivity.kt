@@ -30,6 +30,7 @@ class RecipeDetailActivity : AppCompatActivity() {
     private lateinit var ingredientsContainer: LinearLayout
     private lateinit var instructionsContainer: LinearLayout
     private lateinit var starsContainer: LinearLayout
+    private lateinit var tvRatedMessage: TextView  // ← NEW
     private lateinit var tvCommentsTitle: TextView
     private lateinit var etComment: EditText
     private lateinit var btnPostComment: Button
@@ -53,31 +54,33 @@ class RecipeDetailActivity : AppCompatActivity() {
         setupToolbar()
         loadRecipeData()
         setupStars()
+        checkMyRating()  // ← NEW: check if user already rated
         setupComments()
         loadComments()
         loadFavoriteStatus()
     }
 
     private fun initViews() {
-        ivRecipeImage        = findViewById(R.id.ivRecipeImage)
-        tvTitle              = findViewById(R.id.tvTitle)
-        tvDifficulty         = findViewById(R.id.tvDifficulty)
-        tvDescription        = findViewById(R.id.tvDescription)
-        tvPrepTime           = findViewById(R.id.tvPrepTime)
-        tvCookTime           = findViewById(R.id.tvCookTime)
-        tvServings           = findViewById(R.id.tvServings)
-        tvRating             = findViewById(R.id.tvRating)
-        tagsContainer        = findViewById(R.id.tagsContainer)
-        ingredientsContainer = findViewById(R.id.ingredientsContainer)
+        ivRecipeImage         = findViewById(R.id.ivRecipeImage)
+        tvTitle               = findViewById(R.id.tvTitle)
+        tvDifficulty          = findViewById(R.id.tvDifficulty)
+        tvDescription         = findViewById(R.id.tvDescription)
+        tvPrepTime            = findViewById(R.id.tvPrepTime)
+        tvCookTime            = findViewById(R.id.tvCookTime)
+        tvServings            = findViewById(R.id.tvServings)
+        tvRating              = findViewById(R.id.tvRating)
+        tagsContainer         = findViewById(R.id.tagsContainer)
+        ingredientsContainer  = findViewById(R.id.ingredientsContainer)
         instructionsContainer = findViewById(R.id.instructionsContainer)
-        starsContainer       = findViewById(R.id.starsContainer)
-        tvCommentsTitle      = findViewById(R.id.tvCommentsTitle)
-        etComment            = findViewById(R.id.etComment)
-        btnPostComment       = findViewById(R.id.btnPostComment)
-        commentsContainer    = findViewById(R.id.commentsContainer)
-        tvAuthor             = findViewById(R.id.tvAuthor)
-        toolbar              = findViewById(R.id.toolbar)
-        btnFavorite          = findViewById(R.id.btnFavorite)
+        starsContainer        = findViewById(R.id.starsContainer)
+        tvRatedMessage        = findViewById(R.id.tvRatedMessage)  // ← NEW
+        tvCommentsTitle       = findViewById(R.id.tvCommentsTitle)
+        etComment             = findViewById(R.id.etComment)
+        btnPostComment        = findViewById(R.id.btnPostComment)
+        commentsContainer     = findViewById(R.id.commentsContainer)
+        tvAuthor              = findViewById(R.id.tvAuthor)
+        toolbar               = findViewById(R.id.toolbar)
+        btnFavorite           = findViewById(R.id.btnFavorite)
         prefs = getSharedPreferences("cookshare_prefs", MODE_PRIVATE)
     }
 
@@ -181,6 +184,42 @@ class RecipeDetailActivity : AppCompatActivity() {
         }
     }
 
+    // ── Check if user already rated ───────────────────────────────────────────
+    private fun checkMyRating() {
+        val user = getUser() ?: return
+        val email = user.email ?: return
+
+        RetrofitClient.instance.getMyRating(recipeId, email)
+            .enqueue(object : Callback<MyRatingResponse> {
+                override fun onResponse(
+                    call: Call<MyRatingResponse>,
+                    response: Response<MyRatingResponse>
+                ) {
+                    val body = response.body() ?: return
+                    if (body.rated) {
+                        hasRated = true
+                        userRating = body.stars
+                        runOnUiThread {
+                            // Fill stars with user's rating
+                            for (i in 0 until starsContainer.childCount) {
+                                val star = starsContainer.getChildAt(i) as ImageView
+                                star.setColorFilter(
+                                    if (i < body.stars) 0xFFF97316.toInt()
+                                    else 0xFFD1D5DB.toInt()
+                                )
+                            }
+                            // Show rated message, hide stars
+                            starsContainer.visibility = View.GONE
+                            tvRatedMessage.visibility = View.VISIBLE
+                            tvRatedMessage.text =
+                                "You rated this recipe ${body.stars} star${if (body.stars > 1) "s" else ""}! Thank you."
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<MyRatingResponse>, t: Throwable) {}
+            })
+    }
+
     private fun onStarClicked(rating: Int) {
         if (hasRated) return
         userRating = rating
@@ -190,6 +229,11 @@ class RecipeDetailActivity : AppCompatActivity() {
             val star = starsContainer.getChildAt(i) as ImageView
             star.setColorFilter(if (i < rating) 0xFFF97316.toInt() else 0xFFD1D5DB.toInt())
         }
+
+        // Hide stars, show rated message
+        starsContainer.visibility = View.GONE
+        tvRatedMessage.visibility = View.VISIBLE
+        tvRatedMessage.text = "You rated this recipe $rating star${if (rating > 1) "s" else ""}! Thank you."
 
         val userEmail = getUser()?.email ?: ""
         val token = getToken()
@@ -208,8 +252,6 @@ class RecipeDetailActivity : AppCompatActivity() {
                                 "You have already rated this recipe", Toast.LENGTH_SHORT).show()
                         }
                     }
-                    Toast.makeText(this@RecipeDetailActivity,
-                        "Rated $rating star${if (rating > 1) "s" else ""}!", Toast.LENGTH_SHORT).show()
                 }
                 override fun onFailure(call: Call<DbRecipe>, t: Throwable) {
                     Toast.makeText(this@RecipeDetailActivity,
