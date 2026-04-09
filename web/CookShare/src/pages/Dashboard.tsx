@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChefHat, Star, Users, Clock, Plus, Search, Shield,
   LogOut, Settings, User, Heart, Share2, X,
-  Timer, UtensilsCrossed, MessageCircle, RefreshCw,
+  Timer, UtensilsCrossed, MessageCircle, RefreshCw, Flame,
 } from 'lucide-react';
 import type { Recipe, Difficulty, Comment } from '../types/recipe';
 import { authService } from '../services/authService';
@@ -26,6 +26,15 @@ const CATEGORY_MAP: Record<string, string> = {
   Asian: 'asian stir fry noodles',
   Pizza: 'pizza',
 };
+
+// ── Nutrition type ────────────────────────────────────────────────────────────
+interface NutritionData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+}
 
 const mapRecipe = (r: SpoonacularRecipe): Recipe => ({
   id: r.id,
@@ -78,6 +87,27 @@ const DifficultyBadge = ({ difficulty }: { difficulty: Difficulty }) => {
   return <span className={classMap[difficulty]}>{difficulty}</span>;
 };
 
+// ── Nutrition Badge (shown on card) ───────────────────────────────────────────
+const NutritionBadge = ({ recipeId }: { recipeId: string }) => {
+  const [calories, setCalories] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`http://localhost:8081/api/recipes/${recipeId}/nutrition`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.calories > 0) setCalories(Math.round(data.calories)); })
+      .catch(() => {});
+  }, [recipeId]);
+
+  if (!calories) return null;
+
+  return (
+    <span className="nutrition-badge">
+      <Flame size={11} />
+      {calories} kcal
+    </span>
+  );
+};
+
 const RecipeCard = ({ recipe, onClick }: { recipe: Recipe; onClick: () => void }) => (
   <div className="recipe-card" onClick={onClick}>
     <div className="recipe-card__image-wrapper">
@@ -105,6 +135,10 @@ const RecipeCard = ({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
           <span>{recipe.cookTime}</span>
         </div>
       </div>
+      {/* ── Nutrition badge ── */}
+      <div className="recipe-card__nutrition">
+        <NutritionBadge recipeId={String(recipe.id)} />
+      </div>
       <div className="recipe-card__footer">
         <span>by {recipe.author}</span>
         <div className="recipe-card__servings">
@@ -128,6 +162,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
   const [comments, setComments] = useState<Comment[]>([]);
   const [isFavorited, setIsFavorited] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [nutrition, setNutrition] = useState<NutritionData | null>(null);  // ← NEW
 
   const user = authService.getUser();
   const recipeId = String(recipe.id);
@@ -149,6 +184,15 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         }
       } catch { /* ignore */ }
 
+      // ── Load nutrition ────────────────────────────────────────────────────
+      try {
+        const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}/nutrition`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.calories > 0 || data.protein > 0) setNutrition(data);
+        }
+      } catch { /* ignore */ }
+
       if (user?.email) {
         // Check favorites
         try {
@@ -161,7 +205,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
           }
         } catch { /* ignore */ }
 
-        // ── Check if user already rated this recipe ───────────────────────
+        // Check if user already rated
         try {
           const res = await fetch(
             `http://localhost:8081/api/recipes/${recipeId}/my-rating?email=${encodeURIComponent(user.email)}`
@@ -298,6 +342,41 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
           </div>
 
           <div className="modal__divider" />
+
+          {/* ── Nutrition Section ── */}
+          {nutrition && (
+            <>
+              <h3 className="modal__section-title">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Flame size={18} color="#f97316" />
+                  Nutrition Facts
+                </span>
+              </h3>
+              <div className="nutrition-grid">
+                <div className="nutrition-item">
+                  <span className="nutrition-item__value">{Math.round(nutrition.calories)}</span>
+                  <span className="nutrition-item__label">Calories</span>
+                </div>
+                <div className="nutrition-item">
+                  <span className="nutrition-item__value">{nutrition.protein.toFixed(1)}g</span>
+                  <span className="nutrition-item__label">Protein</span>
+                </div>
+                <div className="nutrition-item">
+                  <span className="nutrition-item__value">{nutrition.carbs.toFixed(1)}g</span>
+                  <span className="nutrition-item__label">Carbs</span>
+                </div>
+                <div className="nutrition-item">
+                  <span className="nutrition-item__value">{nutrition.fat.toFixed(1)}g</span>
+                  <span className="nutrition-item__label">Fat</span>
+                </div>
+                <div className="nutrition-item">
+                  <span className="nutrition-item__value">{nutrition.fiber.toFixed(1)}g</span>
+                  <span className="nutrition-item__label">Fiber</span>
+                </div>
+              </div>
+              <div className="modal__divider" />
+            </>
+          )}
 
           <h3 className="modal__section-title">Ingredients</h3>
           <ul className="modal__ingredient-list">
@@ -544,7 +623,6 @@ const Dashboard = () => {
         <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
       )}
 
-      {/* Navbar */}
       <nav className="dashboard-nav">
         <div className="dashboard-nav__logo">
           <div className="dashboard-nav__logo-icon">
@@ -562,7 +640,6 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* ── Avatar: shows photo if available, otherwise initials ── */}
         <div className="dashboard-nav__user" onClick={(e) => e.stopPropagation()}>
           <button className="dashboard-nav__avatar" onClick={() => setDropdownOpen((o) => !o)}>
             {avatarUrl ? (
@@ -600,7 +677,6 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* Main */}
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div>
