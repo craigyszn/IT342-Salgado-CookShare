@@ -1,23 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChefHat, ArrowLeft, Plus, X, Save, Image as ImageIcon } from 'lucide-react';
 import { authService } from '../services/authService';
 import '../styles/CreateRecipe.css';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type ToastState = { message: string; type: 'success' | 'error' } | null;
-
-// ── Main Component ────────────────────────────────────────────────────────────
 
 export function CreateRecipe() {
   const navigate = useNavigate();
   const [toast, setToast] = useState<ToastState>(null);
 
-  // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [imagePreview, setImagePreview] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
   const [prepTime, setPrepTime] = useState('');
   const [cookTime, setCookTime] = useState('');
   const [servings, setServings] = useState('');
@@ -28,7 +25,8 @@ export function CreateRecipe() {
   const [ingredients, setIngredients] = useState<string[]>(['']);
   const [instructions, setInstructions] = useState<string[]>(['']);
 
-  // Redirect if not logged in
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const user = authService.getUser();
     if (!user) navigate('/login');
@@ -36,11 +34,41 @@ export function CreateRecipe() {
 
   const user = authService.getUser();
 
-  // ── Toast helper ───────────────────────────────────────────────────────────
-
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // ── Image Upload ───────────────────────────────────────────────────────────
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show local preview immediately
+    setImagePreview(URL.createObjectURL(file));
+    setImageUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:8081/api/recipes/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      setImageUrl(data.imageUrl);
+      showToast('Image uploaded successfully!', 'success');
+    } catch {
+      showToast('Image upload failed. Please try again.', 'error');
+      setImagePreview('');
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   // ── Tag handlers ───────────────────────────────────────────────────────────
@@ -132,14 +160,12 @@ export function CreateRecipe() {
 
   return (
     <div className="create-root">
-      {/* Toast */}
       {toast && (
         <div className={`create-toast create-toast--${toast.type}`}>
           {toast.message}
         </div>
       )}
 
-      {/* Navbar */}
       <nav className="create-nav">
         <div className="create-nav__logo">
           <div className="create-nav__logo-icon">
@@ -153,7 +179,6 @@ export function CreateRecipe() {
         </button>
       </nav>
 
-      {/* Main */}
       <main className="create-main">
         <div className="create-page-header">
           <h2 className="create-page-header__title">Create New Recipe</h2>
@@ -191,19 +216,41 @@ export function CreateRecipe() {
               />
             </div>
 
+            {/* ── Image Upload ── */}
             <div className="create-field">
               <label className="create-label">
                 <ImageIcon size={16} />
-                Recipe Image URL
+                Recipe Image
               </label>
+
+              {/* Preview */}
+              {imagePreview && (
+                <div className="create-image-preview">
+                  <img src={imagePreview} alt="Recipe preview" />
+                </div>
+              )}
+
               <input
-                className="create-input"
-                type="url"
-                placeholder="https://example.com/recipe-image.jpg"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImageChange}
               />
-              <p className="create-hint">Provide a URL to an image of your finished dish</p>
+              <button
+                type="button"
+                className="create-upload-btn"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={imageUploading}
+              >
+                <ImageIcon size={16} />
+                {imageUploading
+                  ? 'Uploading...'
+                  : imagePreview
+                  ? 'Change Image'
+                  : 'Upload Image'}
+              </button>
+              <p className="create-hint">Upload a photo of your finished dish (JPG, PNG, etc.)</p>
             </div>
           </div>
 
@@ -376,9 +423,9 @@ export function CreateRecipe() {
             <button type="button" className="create-actions__cancel" onClick={() => navigate('/dashboard')}>
               Cancel
             </button>
-            <button type="submit" className="create-actions__submit">
+            <button type="submit" className="create-actions__submit" disabled={imageUploading}>
               <Save size={16} />
-              Publish Recipe
+              {imageUploading ? 'Uploading Image...' : 'Publish Recipe'}
             </button>
           </div>
 
