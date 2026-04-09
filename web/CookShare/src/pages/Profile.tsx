@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChefHat, ArrowLeft, User, Mail, Save, Clock, UtensilsCrossed, Trash2 } from 'lucide-react';
+import { ChefHat, ArrowLeft, User, Mail, Save, Clock, UtensilsCrossed, Trash2, Image as ImageIcon } from 'lucide-react';
 import { authService } from '../services/authService';
 import '../styles/Profile.css';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type ActiveTab = 'profile' | 'recipes';
@@ -22,32 +20,26 @@ interface UserRecipe {
   createdAt: string;
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
-
 export function Profile() {
   const navigate = useNavigate();
   const [toast, setToast] = useState<ToastState>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
 
-  // Read-only fields (from registration)
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
-  // Editable fields
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
   const [favoriteFood, setFavoriteFood] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
-  // Stats
   const [stats, setStats] = useState({ recipesShared: 0, favorites: 0, comments: 0 });
-
-  // My Recipes
   const [myRecipes, setMyRecipes] = useState<UserRecipe[]>([]);
   const [recipesLoading, setRecipesLoading] = useState(false);
 
-  // Fetch real stats from backend
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const user = authService.getUser();
     if (user?.email) {
@@ -58,13 +50,9 @@ export function Profile() {
     }
   }, []);
 
-  // Redirect if not logged in & pre-fill from localStorage
   useEffect(() => {
     const user = authService.getUser();
-    if (!user) {
-      navigate('/login');
-      return;
-    }
+    if (!user) { navigate('/login'); return; }
     setFirstName(user.firstName || '');
     setLastName(user.lastName || '');
     setEmail(user.email || '');
@@ -74,12 +62,22 @@ export function Profile() {
     setAvatarUrl(user.avatarUrl || '');
   }, [navigate]);
 
-  // Fetch user's recipes when My Recipes tab is opened
+  // Fetch profile photo from backend on load
+  useEffect(() => {
+    const user = authService.getUser();
+    if (!user?.email) return;
+    fetch(`http://localhost:8081/api/users/profile-photo?email=${encodeURIComponent(user.email)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.profilePhotoUrl) setAvatarUrl(data.profilePhotoUrl);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (activeTab !== 'recipes') return;
     const user = authService.getUser();
     if (!user?.email) return;
-
     setRecipesLoading(true);
     fetch(`http://localhost:8081/api/recipes/user?email=${encodeURIComponent(user.email)}`)
       .then((res) => res.json())
@@ -87,8 +85,6 @@ export function Profile() {
       .catch(() => setMyRecipes([]))
       .finally(() => setRecipesLoading(false));
   }, [activeTab]);
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -99,6 +95,47 @@ export function Profile() {
     const f = firstName.charAt(0).toUpperCase();
     const l = lastName.charAt(0).toUpperCase();
     return (f + l) || 'U';
+  };
+
+  // ── Avatar Upload ──────────────────────────────────────────────────────────
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const user = authService.getUser();
+    if (!user?.email) return;
+
+    // Show local preview immediately
+    setAvatarUrl(URL.createObjectURL(file));
+    setAvatarUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('email', user.email);
+
+      const response = await fetch('http://localhost:8081/api/users/upload-profile-photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      setAvatarUrl(data.profilePhotoUrl);
+
+      // Persist in localStorage
+      const updated = { ...user, avatarUrl: data.profilePhotoUrl };
+      localStorage.setItem('user', JSON.stringify(updated));
+
+      showToast('Profile photo updated!', 'success');
+    } catch {
+      showToast('Photo upload failed. Please try again.', 'error');
+      setAvatarUrl(user.avatarUrl || '');
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -112,9 +149,7 @@ export function Profile() {
   const handleDeleteRecipe = async (id: string) => {
     if (!confirm('Are you sure you want to delete this recipe?')) return;
     try {
-      const res = await fetch(`http://localhost:8081/api/recipes/${id}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`http://localhost:8081/api/recipes/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setMyRecipes(myRecipes.filter((r) => r.id !== id));
         setStats((prev) => ({ ...prev, recipesShared: prev.recipesShared - 1 }));
@@ -134,32 +169,27 @@ export function Profile() {
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <div className="profile-root">
-      {/* Toast */}
       {toast && (
         <div className={`profile-toast profile-toast--${toast.type}`}>
           {toast.message}
         </div>
       )}
 
-      {/* Navbar */}
       <nav className="profile-nav">
-          <div className="profile-nav__logo" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
-            <div className="profile-nav__logo-icon">
-              <ChefHat size={18} color="white" />
-            </div>
-            <span className="profile-nav__logo-text">CookShare</span>
+        <div className="profile-nav__logo" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
+          <div className="profile-nav__logo-icon">
+            <ChefHat size={18} color="white" />
           </div>
+          <span className="profile-nav__logo-text">CookShare</span>
+        </div>
         <button className="profile-nav__back" onClick={() => navigate('/dashboard')}>
           <ArrowLeft size={16} />
           Back to Dashboard
         </button>
       </nav>
 
-      {/* Main */}
       <main className="profile-main">
         <div className="profile-page-header">
           <h2 className="profile-page-header__title">My Profile</h2>
@@ -180,17 +210,25 @@ export function Profile() {
               )}
             </div>
 
-            <div className="profile-field" style={{ width: '100%' }}>
-              <label className="profile-label">Avatar URL</label>
-              <input
-                className="profile-input"
-                type="url"
-                placeholder="https://example.com/avatar.jpg"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-              />
-              <p className="profile-hint">Enter a URL to an image for your profile picture</p>
-            </div>
+            {/* ── File Upload ── */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
+            <button
+              type="button"
+              className="create-upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading}
+              style={{ width: '100%', marginTop: '0.75rem' }}
+            >
+              <ImageIcon size={16} />
+              {avatarUploading ? 'Uploading...' : avatarUrl ? 'Change Photo' : 'Upload Photo'}
+            </button>
+            <p className="profile-hint">Upload a profile photo (JPG, PNG, etc.)</p>
 
             <div className="profile-stats">
               <p className="profile-stats__title">Account Stats</p>
@@ -211,8 +249,6 @@ export function Profile() {
 
           {/* Right — Tabs */}
           <div className="profile-section">
-
-            {/* Tab Headers */}
             <div className="profile-tabs">
               <button
                 className={`profile-tab${activeTab === 'profile' ? ' profile-tab--active' : ''}`}
@@ -233,7 +269,6 @@ export function Profile() {
               </button>
             </div>
 
-            {/* ── Profile Tab ── */}
             {activeTab === 'profile' && (
               <>
                 <p className="profile-section__title" style={{ marginTop: '1.25rem' }}>Personal Information</p>
@@ -256,7 +291,6 @@ export function Profile() {
                     <input
                       className="profile-input"
                       type="email"
-                      placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -311,15 +345,11 @@ export function Profile() {
               </>
             )}
 
-            {/* ── My Recipes Tab ── */}
             {activeTab === 'recipes' && (
               <div className="profile-recipes">
                 <div className="profile-recipes__header">
                   <p className="profile-section__title" style={{ margin: 0 }}>My Published Recipes</p>
-                  <button
-                    className="profile-recipes__create-btn"
-                    onClick={() => navigate('/create-recipe')}
-                  >
+                  <button className="profile-recipes__create-btn" onClick={() => navigate('/create-recipe')}>
                     + New Recipe
                   </button>
                 </div>
@@ -395,7 +425,6 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Account Settings — only show on profile tab */}
         {activeTab === 'profile' && (
           <div className="profile-section">
             <p className="profile-section__title">Account Settings</p>
@@ -412,7 +441,7 @@ export function Profile() {
             <div className="profile-settings-row">
               <div>
                 <p className="profile-settings-row__title">Privacy Settings</p>
-                <p className="profile-settings-row__desc">Control who can see your profile and recipes</p>
+                <p className="profile-settings-row__desc">Manage your account preferences</p>
               </div>
               <button className="profile-settings-btn">Manage</button>
             </div>
