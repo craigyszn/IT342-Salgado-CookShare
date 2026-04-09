@@ -16,8 +16,6 @@ import {
 } from '../services/spoonacularService';
 import '../styles/Dashboard.css';
 
-// ── Category map ──────────────────────────────────────────────────────────────
-
 const CATEGORIES = ['All', 'Pasta', 'Dessert', 'Salad', 'Main Course', 'Asian', 'Pizza'];
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -28,8 +26,6 @@ const CATEGORY_MAP: Record<string, string> = {
   Asian: 'asian stir fry noodles',
   Pizza: 'pizza',
 };
-
-// ── Mapper: Spoonacular → our Recipe type ─────────────────────────────────────
 
 const mapRecipe = (r: SpoonacularRecipe): Recipe => ({
   id: r.id,
@@ -54,8 +50,6 @@ const mapRecipe = (r: SpoonacularRecipe): Recipe => ({
   comments: [],
 });
 
-// ── Mapper: DB Recipe → our Recipe type ──────────────────────────────────────
-
 const mapDbRecipe = (r: any): Recipe => ({
   id: r.id,
   title: r.title,
@@ -74,8 +68,6 @@ const mapDbRecipe = (r: any): Recipe => ({
   postedDate: r.createdAt || new Date().toISOString().split('T')[0],
   comments: [],
 });
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 const DifficultyBadge = ({ difficulty }: { difficulty: Difficulty }) => {
   const classMap: Record<Difficulty, string> = {
@@ -142,6 +134,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
   useEffect(() => {
     const load = async () => {
+      // Load comments
       try {
         const res = await fetch(`http://localhost:8081/api/comments?recipeId=${recipeId}`);
         if (res.ok) {
@@ -157,6 +150,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
       } catch { /* ignore */ }
 
       if (user?.email) {
+        // Check favorites
         try {
           const res = await fetch(
             `http://localhost:8081/api/favorites/check?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`
@@ -164,6 +158,20 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
           if (res.ok) {
             const data = await res.json();
             setIsFavorited(data.favorited);
+          }
+        } catch { /* ignore */ }
+
+        // ── Check if user already rated this recipe ───────────────────────
+        try {
+          const res = await fetch(
+            `http://localhost:8081/api/recipes/${recipeId}/my-rating?email=${encodeURIComponent(user.email)}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.rated) {
+              setHasRated(true);
+              setUserRating(data.stars);
+            }
           }
         } catch { /* ignore */ }
       }
@@ -227,7 +235,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        {/* Image */}
         <div className="modal__image-wrapper">
           <img src={recipe.imageUrl} alt={recipe.title} className="modal__image" />
           <div className="modal__image-actions">
@@ -242,12 +249,10 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
           </div>
         </div>
 
-        {/* Close */}
         <button className="modal__close" onClick={onClose}>
           <X size={16} />
         </button>
 
-        {/* Body */}
         <div className="modal__body">
           <div className="modal__header">
             <h2 className="modal__title">{recipe.title}</h2>
@@ -255,7 +260,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
           </div>
           <p className="modal__description">{recipe.description}</p>
 
-          {/* Meta */}
           <div className="modal__meta">
             <div className="modal__meta-item">
               <Timer size={18} color="#f97316" />
@@ -287,7 +291,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
             </div>
           </div>
 
-          {/* Tags */}
           <div className="modal__tags">
             {recipe.tags.map((tag) => (
               <span key={tag} className="modal__tag">{tag}</span>
@@ -296,7 +299,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
           <div className="modal__divider" />
 
-          {/* Ingredients */}
           <h3 className="modal__section-title">Ingredients</h3>
           <ul className="modal__ingredient-list">
             {recipe.ingredients.map((ing, i) => (
@@ -309,7 +311,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
           <div className="modal__divider" />
 
-          {/* Instructions */}
           <h3 className="modal__section-title">Instructions</h3>
           <ol className="modal__instruction-list">
             {recipe.instructions.map((step, i) => (
@@ -322,7 +323,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
           <div className="modal__divider" />
 
-          {/* Rate */}
           <h3 className="modal__section-title">Rate this recipe</h3>
           <div className="modal__rating-display">
             <Star size={16} fill="#facc15" color="#facc15" />
@@ -366,7 +366,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
           <div className="modal__divider" />
 
-          {/* Comments */}
           <h3 className="modal__section-title">
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <MessageCircle size={20} />
@@ -399,7 +398,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
             </div>
           )}
 
-          {/* Footer */}
           <div className="modal__footer">
             Recipe by <strong>{recipe.author}</strong> • Posted on {recipe.postedDate}
           </div>
@@ -434,8 +432,6 @@ const Dashboard = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // ── Real user count from backend ───────────────────────────────────────────
   const [userCount, setUserCount] = useState('...');
 
   useEffect(() => {
@@ -448,6 +444,7 @@ const Dashboard = () => {
   const user = authService.getUser();
   const isAdmin = authService.isAdmin();
   const initials = user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U';
+  const avatarUrl = user?.avatarUrl || '';
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'User';
   const email = user?.email ?? '';
 
@@ -455,8 +452,6 @@ const Dashboard = () => {
     authService.logout();
     navigate('/');
   };
-
-  // ── Fetch DB recipes ──────────────────────────────────────────────────────
 
   const fetchDbRecipes = async (): Promise<Recipe[]> => {
     try {
@@ -468,8 +463,6 @@ const Dashboard = () => {
       return [];
     }
   };
-
-  // ── Fetch recipes (Spoonacular + DB merged) ────────────────────────────────
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);
@@ -569,9 +562,18 @@ const Dashboard = () => {
           )}
         </div>
 
+        {/* ── Avatar: shows photo if available, otherwise initials ── */}
         <div className="dashboard-nav__user" onClick={(e) => e.stopPropagation()}>
           <button className="dashboard-nav__avatar" onClick={() => setDropdownOpen((o) => !o)}>
-            {initials}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={fullName}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+              />
+            ) : (
+              initials
+            )}
           </button>
           {dropdownOpen && (
             <div className="dropdown">
@@ -611,7 +613,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Search */}
         <div className="dashboard-search">
           <Search size={16} color="#9ca3af" className="dashboard-search__icon" />
           <input
@@ -623,7 +624,6 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Filters */}
         <div className="dashboard-filters">
           {CATEGORIES.map((cat) => (
             <button
@@ -636,7 +636,6 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Stats */}
         <div className="dashboard-stats">
           <StatCard
             iconClass="stat-card__icon--orange"
@@ -660,7 +659,6 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* No results banner */}
         {noResults && !loading && (
           <div className="dashboard-no-results">
             <p className="dashboard-no-results__text">
@@ -669,7 +667,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Content */}
         {loading ? (
           <div className="dashboard-loading">
             <div className="dashboard-loading__spinner" />

@@ -13,9 +13,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import edu.cit.salgado.cookshare.entity.Recipe;
+import edu.cit.salgado.cookshare.repository.RatingRepository;
 import edu.cit.salgado.cookshare.service.RecipeService;
+import edu.cit.salgado.cookshare.service.SupabaseStorageService;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -23,9 +26,16 @@ import edu.cit.salgado.cookshare.service.RecipeService;
 public class RecipeController {
 
     private final RecipeService recipeService;
+    private final SupabaseStorageService supabaseStorageService;
+    private final RatingRepository ratingRepository;
 
-    public RecipeController(RecipeService recipeService) {
+    public RecipeController(
+            RecipeService recipeService,
+            SupabaseStorageService supabaseStorageService,
+            RatingRepository ratingRepository) {
         this.recipeService = recipeService;
+        this.supabaseStorageService = supabaseStorageService;
+        this.ratingRepository = ratingRepository;
     }
 
     @GetMapping
@@ -49,7 +59,28 @@ public class RecipeController {
         return ResponseEntity.ok("Recipe deleted");
     }
 
-    // ── Rate endpoint — now requires userEmail to prevent duplicates ───────────
+    // ── Upload recipe image to Supabase ───────────────────────────────────────
+    @PostMapping("/upload-image")
+    public ResponseEntity<?> uploadRecipeImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = supabaseStorageService.uploadRecipeImage(file);
+            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Image upload failed: " + e.getMessage());
+        }
+    }
+
+    // ── Check if user already rated ───────────────────────────────────────────
+    @GetMapping("/{id}/my-rating")
+    public ResponseEntity<?> getMyRating(
+            @PathVariable String id,
+            @RequestParam String email) {
+        return ratingRepository.findByUserEmailAndRecipeId(email, id)
+            .map(r -> ResponseEntity.ok(Map.of("rated", true, "stars", r.getRatingValue())))
+            .orElse(ResponseEntity.ok(Map.of("rated", false, "stars", 0)));
+    }
+
+    // ── Rate endpoint ─────────────────────────────────────────────────────────
     @PostMapping("/{id}/rate")
     public ResponseEntity<?> rateRecipe(
             @PathVariable String id,
@@ -76,7 +107,6 @@ public class RecipeController {
         Recipe updated = recipeService.rateRecipe(id, stars, userEmail);
 
         if (updated == null) {
-            // Could be duplicate or recipe not found
             return ResponseEntity.status(409).body("You have already rated this recipe");
         }
 
