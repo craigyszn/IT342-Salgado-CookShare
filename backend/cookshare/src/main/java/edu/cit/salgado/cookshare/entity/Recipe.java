@@ -2,6 +2,7 @@ package edu.cit.salgado.cookshare.entity;
 
 import java.util.List;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -22,11 +23,9 @@ public class Recipe {
     private int servings;
     private String difficulty;
 
-    // ── Rating fields ─────────────────────────────────────────────────────────
-    // averageRating = totalRatingScore / reviewCount
-    private double rating;         // average rating (0.0 - 5.0)
-    private int reviewCount;       // how many people rated
-    private int totalRatingScore;  // sum of all ratings (for recalculation)
+    private double rating;
+    private int reviewCount;
+    private int totalRatingScore;
 
     private String category;
     private String createdAt;
@@ -38,6 +37,7 @@ public class Recipe {
     private List<String> ingredients;
 
     @ElementCollection
+    @Column(columnDefinition = "TEXT")  // ← FIX: allows long instruction steps
     private List<String> instructions;
 
     public Recipe() {}
