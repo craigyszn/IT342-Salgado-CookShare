@@ -33,6 +33,7 @@ export function Profile() {
   const [favoriteFood, setFavoriteFood] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [stats, setStats] = useState({ recipesShared: 0, favorites: 0, comments: 0 });
   const [myRecipes, setMyRecipes] = useState<UserRecipe[]>([]);
@@ -56,13 +57,25 @@ export function Profile() {
     setFirstName(user.firstName || '');
     setLastName(user.lastName || '');
     setEmail(user.email || '');
-    setBio(user.bio || '');
-    setLocation(user.location || '');
-    setFavoriteFood(user.favoriteFood || '');
     setAvatarUrl(user.avatarUrl || '');
   }, [navigate]);
 
-  // Fetch profile photo from backend on load
+  // ── Load profile fields from backend on mount ─────────────────────────────
+  useEffect(() => {
+    const user = authService.getUser();
+    if (!user?.email) return;
+    fetch(`http://localhost:8081/api/users/profile?email=${encodeURIComponent(user.email)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.bio) setBio(data.bio);
+        if (data.location) setLocation(data.location);
+        if (data.favoriteFood) setFavoriteFood(data.favoriteFood);
+        if (data.profilePhotoUrl) setAvatarUrl(data.profilePhotoUrl);
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Fetch profile photo from backend on load ──────────────────────────────
   useEffect(() => {
     const user = authService.getUser();
     if (!user?.email) return;
@@ -98,7 +111,6 @@ export function Profile() {
   };
 
   // ── Avatar Upload ──────────────────────────────────────────────────────────
-
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -106,7 +118,6 @@ export function Profile() {
     const user = authService.getUser();
     if (!user?.email) return;
 
-    // Show local preview immediately
     setAvatarUrl(URL.createObjectURL(file));
     setAvatarUploading(true);
 
@@ -125,7 +136,6 @@ export function Profile() {
       const data = await response.json();
       setAvatarUrl(data.profilePhotoUrl);
 
-      // Persist in localStorage
       const updated = { ...user, avatarUrl: data.profilePhotoUrl };
       localStorage.setItem('user', JSON.stringify(updated));
 
@@ -138,12 +148,37 @@ export function Profile() {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  // ── Save profile to backend ───────────────────────────────────────────────
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const current = authService.getUser();
-    const updated = { ...current, email, bio, location, favoriteFood, avatarUrl };
-    localStorage.setItem('user', JSON.stringify(updated));
-    showToast('Profile updated successfully!', 'success');
+    const user = authService.getUser();
+    if (!user?.email) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch('http://localhost:8081/api/users/update-profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          bio,
+          location,
+          favoriteFood,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to save');
+
+      // Also update localStorage
+      const updated = { ...user, email, bio, location, favoriteFood, avatarUrl };
+      localStorage.setItem('user', JSON.stringify(updated));
+
+      showToast('Profile updated successfully!', 'success');
+    } catch {
+      showToast('Failed to save profile. Please try again.', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDeleteRecipe = async (id: string) => {
@@ -210,7 +245,6 @@ export function Profile() {
               )}
             </div>
 
-            {/* ── File Upload ── */}
             <input
               ref={fileInputRef}
               type="file"
@@ -336,9 +370,9 @@ export function Profile() {
                     <button type="button" className="profile-actions__cancel" onClick={() => navigate('/dashboard')}>
                       Cancel
                     </button>
-                    <button type="submit" className="profile-actions__save">
+                    <button type="submit" className="profile-actions__save" disabled={saving}>
                       <Save size={15} />
-                      Save Changes
+                      {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </form>
