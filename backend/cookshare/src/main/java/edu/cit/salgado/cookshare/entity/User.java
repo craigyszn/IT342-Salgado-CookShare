@@ -43,5 +43,15 @@ public class User {
     private String role = "USER";
 
     @Column(name = "profile_photo_url")
-    private String profilePhotoUrl;  // ← NEW
+    private String profilePhotoUrl;
+
+    // ── New profile fields ─────────────────────────────────────────────────
+    @Column(name = "bio", columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(name = "location")
+    private String location;
+
+    @Column(name = "favorite_food")
+    private String favoriteFood;
 }
