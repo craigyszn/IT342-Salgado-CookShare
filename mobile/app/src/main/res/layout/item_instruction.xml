@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="top"
+    android:layout_marginBottom="12dp">
+
+    <!-- Step number circle -->
+    <FrameLayout
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:background="@drawable/bg_logo_circle"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="2dp">
+
+        <TextView
+            android:id="@+id/tvStepNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="1"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvStepText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Step description"
+        android:textSize="14sp"
+        android:textColor="#374151"
+        android:lineSpacingMultiplier="1.5" />
+
+</LinearLayout>

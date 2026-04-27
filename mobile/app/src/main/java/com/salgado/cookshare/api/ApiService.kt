@@ -1,6 +1,7 @@
 package com.salgado.cookshare.api
 
 import com.salgado.cookshare.model.*
+import okhttp3.MultipartBody
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -45,6 +46,29 @@ interface ApiService {
         @Body body: RateRequest
     ): Call<DbRecipe>
 
+    // ── Nutrition ─────────────────────────────────────────────────────────────
+    @GET("api/recipes/{id}/nutrition")
+    fun getNutrition(
+        @Path("id") id: String
+    ): Call<NutritionResponse>
+
+    // ── Image Upload ──────────────────────────────────────────────────────────
+    @Multipart
+    @POST("api/recipes/upload-image")
+    fun uploadRecipeImage(
+        @Part image: MultipartBody.Part
+    ): Call<ImageUploadResponse>
+
+    @Multipart
+    @POST("api/users/upload-profile-photo")
+    fun uploadProfilePhoto(
+        @Part photo: MultipartBody.Part,
+        @Part("email") email: okhttp3.RequestBody
+    ): Call<ProfilePhotoResponse>
+
+    @GET("api/users/profile-photo")
+    fun getProfilePhoto(@Query("email") email: String): Call<ProfilePhotoResponse>
+
     // ── Favorites ─────────────────────────────────────────────────────────────
     @GET("api/favorites")
     fun getFavorites(@Query("email") email: String): Call<List<FavoriteItem>>
@@ -84,4 +108,10 @@ interface ApiService {
 
     @GET("api/users/count")
     fun getUserCount(): Call<UserCountResponse>
+
+    @GET("api/recipes/{id}/my-rating")
+    fun getMyRating(
+        @Path("id") id: String,
+        @Query("email") email: String
+    ): Call<MyRatingResponse>
 }

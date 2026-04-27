@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F3F4F6">
+
+    <!-- Navbar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#FFFFFF"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <FrameLayout
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_logo_rounded">
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_chef_hat"
+                app:tint="#FFFFFF"/>
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Create Recipe"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:textColor="#111827"/>
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Back"
+            android:textSize="13sp"
+            android:background="@drawable/bg_chip_inactive"
+            android:textColor="#374151"
+            style="@android:style/Widget.Button"/>
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Basic Info -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="18dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Basic Information" android:textSize="15sp" android:textStyle="bold"
+                    android:textColor="#111827" android:layout_marginBottom="14dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Recipe Title *" android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                <EditText android:id="@+id/etTitle" android:layout_width="match_parent"
+                    android:layout_height="48dp" android:background="@drawable/bg_input"
+                    android:hint="e.g. Mom's Pancit Canton" android:inputType="text"
+                    android:paddingStart="14dp" android:paddingEnd="14dp"
+                    android:textSize="14sp" android:textColor="#111827"
+                    android:textColorHint="#9CA3AF" android:layout_marginBottom="12dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Description *" android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                <EditText android:id="@+id/etDescription" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:background="@drawable/bg_input"
+                    android:hint="Describe your recipe..." android:inputType="textMultiLine"
+                    android:minLines="3" android:gravity="top"
+                    android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingTop="10dp"
+                    android:textSize="14sp" android:textColor="#111827"
+                    android:textColorHint="#9CA3AF" android:layout_marginBottom="12dp"/>
+
+                <!-- Recipe Image Upload -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Recipe Image" android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+
+                <ImageView
+                    android:id="@+id/ivImagePreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:scaleType="centerCrop"
+                    android:background="#F3F4F6"
+                    android:visibility="gone"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btnUploadImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_chip_inactive"
+                    android:text="Upload Image"
+                    android:textColor="#374151"
+                    android:textSize="14sp"
+                    android:stateListAnimator="@null"
+                    android:layout_marginBottom="6dp"
+                    style="@android:style/Widget.Button"/>
+
+                <TextView
+                    android:id="@+id/tvImageStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="#22C55E"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <!-- Recipe Details -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="18dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Recipe Details" android:textSize="15sp" android:textStyle="bold"
+                    android:textColor="#111827" android:layout_marginBottom="14dp"/>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginBottom="12dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="8dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Prep Time" android:textSize="12sp" android:textStyle="bold"
+                            android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                        <EditText android:id="@+id/etPrepTime" android:layout_width="match_parent"
+                            android:layout_height="48dp" android:background="@drawable/bg_input"
+                            android:hint="15 mins" android:paddingStart="14dp" android:paddingEnd="14dp"
+                            android:textSize="13sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Cook Time" android:textSize="12sp" android:textStyle="bold"
+                            android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                        <EditText android:id="@+id/etCookTime" android:layout_width="match_parent"
+                            android:layout_height="48dp" android:background="@drawable/bg_input"
+                            android:hint="30 mins" android:paddingStart="14dp" android:paddingEnd="14dp"
+                            android:textSize="13sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginBottom="12dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="8dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Servings" android:textSize="12sp" android:textStyle="bold"
+                            android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                        <EditText android:id="@+id/etServings" android:layout_width="match_parent"
+                            android:layout_height="48dp" android:background="@drawable/bg_input"
+                            android:hint="4" android:inputType="number"
+                            android:paddingStart="14dp" android:paddingEnd="14dp"
+                            android:textSize="13sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Difficulty" android:textSize="12sp" android:textStyle="bold"
+                            android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                        <Spinner android:id="@+id/spinnerDifficulty" android:layout_width="match_parent"
+                            android:layout_height="48dp" android:background="@drawable/bg_input"
+                            android:paddingStart="14dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Category" android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                <Spinner android:id="@+id/spinnerCategory" android:layout_width="match_parent"
+                    android:layout_height="48dp" android:background="@drawable/bg_input"
+                    android:paddingStart="14dp" android:layout_marginBottom="12dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Tags (comma separated)" android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="#F97316" android:layout_marginBottom="4dp"/>
+                <EditText android:id="@+id/etTags" android:layout_width="match_parent"
+                    android:layout_height="48dp" android:background="@drawable/bg_input"
+                    android:hint="Quick, Healthy, Filipino" android:paddingStart="14dp" android:paddingEnd="14dp"
+                    android:textSize="14sp" android:textColor="#111827" android:textColorHint="#9CA3AF"/>
+            </LinearLayout>
+
+            <!-- Ingredients (dynamic) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="18dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Ingredients *" android:textSize="15sp" android:textStyle="bold"
+                    android:textColor="#111827" android:layout_marginBottom="6dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="List all the ingredients needed" android:textSize="12sp"
+                    android:textColor="#6B7280" android:layout_marginBottom="10dp"/>
+
+                <LinearLayout
+                    android:id="@+id/ingredientsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="10dp"/>
+
+                <Button
+                    android:id="@+id/btnAddIngredient"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_button_orange"
+                    android:text="+ Add Ingredient"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:stateListAnimator="@null"
+                    style="@android:style/Widget.Button"/>
+            </LinearLayout>
+
+            <!-- Instructions (dynamic) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="18dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Instructions *" android:textSize="15sp" android:textStyle="bold"
+                    android:textColor="#111827" android:layout_marginBottom="6dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Step-by-step cooking instructions" android:textSize="12sp"
+                    android:textColor="#6B7280" android:layout_marginBottom="10dp"/>
+
+                <LinearLayout
+                    android:id="@+id/instructionsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="10dp"/>
+
+                <Button
+                    android:id="@+id/btnAddInstruction"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_button_orange"
+                    android:text="+ Add Instruction"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:stateListAnimator="@null"
+                    style="@android:style/Widget.Button"/>
+            </LinearLayout>
+
+            <!-- Publish Button -->
+            <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:layout_gravity="center"
+                android:visibility="gone" android:layout_marginBottom="10dp"/>
+
+            <Button
+                android:id="@+id/btnPublish"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_button_orange"
+                android:text="Publish Recipe"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:stateListAnimator="@null"
+                android:layout_marginBottom="20dp"
+                style="@android:style/Widget.Button"/>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

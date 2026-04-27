@@ -4,14 +4,11 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
 
 object RetrofitClient {
 
-    // ── Auth API (your Spring Boot backend) ───────────────────────────────────
-    // Use 10.0.2.2 for emulator (maps to localhost on your PC)
-    private const val AUTH_BASE_URL = "http://10.0.2.2:8081/"
-
-    // ── Spoonacular API ───────────────────────────────────────────────────────
+    private const val BASE_URL = "http://10.0.2.2:8081/"
     private const val SPOONACULAR_BASE_URL = "https://api.spoonacular.com/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -22,17 +19,18 @@ object RetrofitClient {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    // Auth Retrofit instance
+    // ── Backend API instance ──────────────────────────────────────────────────
     val instance: ApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(AUTH_BASE_URL)
+            .baseUrl(BASE_URL)
             .client(httpClient)
+            .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
     }
 
-    // Spoonacular Retrofit instance
+    // ── Spoonacular API instance ──────────────────────────────────────────────
     val spoonacular: SpoonacularApiService by lazy {
         Retrofit.Builder()
             .baseUrl(SPOONACULAR_BASE_URL)

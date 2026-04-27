@@ -111,5 +111,25 @@ data class UserStats(
     val favorites: Long,
     val comments: Long
 )
+data class ImageUploadResponse(
+    val imageUrl: String
+)
+
+data class ProfilePhotoResponse(
+    val profilePhotoUrl: String
+)
+data class MyRatingResponse(
+    val rated: Boolean,
+    val stars: Int
+)
+data class NutritionResponse(
+    val id: Long?,
+    val recipeId: String,
+    val calories: Double,
+    val protein: Double,
+    val carbs: Double,
+    val fat: Double,
+    val fiber: Double
+)
 
 data class UserCountResponse(val count: Long)
