@@ -17,8 +17,8 @@ public class JwtUtil {
     private static final String SECRET = "cookshare-super-secret-jwt-key-2024-must-be-long-enough";
     private static final Key KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
 
-    // Access token: 15 minutes
-    private static final long ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000L;
+    // Access token: 24 hours
+    private static final long ACCESS_TOKEN_EXPIRY = 24 * 60 * 60 * 1000L;
 
     // Refresh token: 7 days
     private static final long REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000L;

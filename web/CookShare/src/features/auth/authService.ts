@@ -18,6 +18,8 @@ export const authService = {
         email: data.email,
         role: data.role,
       }));
+      // Save JWT token
+      localStorage.setItem('accessToken', data.accessToken || '');
     }
 
     return { ok, status: ok ? 200 : 401, message: data.message };
@@ -25,6 +27,7 @@ export const authService = {
 
   logout: () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
   },
 
   getUser: () => {
@@ -37,6 +40,10 @@ export const authService = {
     if (!raw) return false;
     const user = JSON.parse(raw);
     return user?.role === 'ADMIN';
+  },
+
+  getToken: () => {
+    return localStorage.getItem('accessToken') || '';
   },
 
   register: async (firstName: string, lastName: string, email: string, password: string) => {

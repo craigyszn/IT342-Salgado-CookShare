@@ -30,9 +30,11 @@ interface AdminRecipe {
 
 const getAuthHeaders = () => {
   const user = authService.getUser();
+  const token = authService.getToken();
   return {
     'Content-Type': 'application/json',
     'X-User-Email': user?.email ?? '',
+    'Authorization': `Bearer ${token}`,
   };
 };
 
@@ -354,7 +356,6 @@ const AdminPage = () => {
                 {recipes.map((recipe) => (
                   <tr key={recipe.id}>
                     <td className="admin-table__id">#{recipe.id}</td>
-                    {/* ← removed admin-table__name class here — it caused misalignment */}
                     <td className="admin-table__recipe-title">{recipe.title}</td>
                     <td>{recipe.author}</td>
                     <td>

@@ -10,25 +10,34 @@ import org.springframework.web.bind.annotation.RestController;
 
 import edu.cit.salgado.cookshare.features.user.User;
 import edu.cit.salgado.cookshare.features.user.UserRepository;
+import edu.cit.salgado.cookshare.shared.security.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 public class OAuthController {
 
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
-    public OAuthController(UserRepository userRepository) {
+    public OAuthController(UserRepository userRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/login-success")
     public void loginSuccess(Authentication authentication, HttpServletResponse response) throws IOException {
 
+        // Guard: if authentication is null or not OAuth2, redirect to login
+        if (authentication == null || !(authentication.getPrincipal() instanceof OAuth2User)) {
+            response.sendRedirect("http://localhost:5173/login");
+            return;
+        }
+
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
-        String email = oAuth2User.getAttribute("email");
+        String email     = oAuth2User.getAttribute("email");
         String firstName = oAuth2User.getAttribute("given_name");
-        String lastName = oAuth2User.getAttribute("family_name");
+        String lastName  = oAuth2User.getAttribute("family_name");
 
         // Save to DB if first time logging in with Google
         if (!userRepository.existsByEmail(email)) {
@@ -46,13 +55,17 @@ public class OAuthController {
         User user = userRepository.findByEmail(email).orElse(null);
         String role = (user != null) ? user.getRole() : "USER";
 
-        // Pass user data + role to frontend via URL params
+        // Generate JWT access token for OAuth user
+        String accessToken = jwtUtil.generateAccessToken(email, role);
+
+        // Pass user data + role + token to frontend via URL params
         String redirectUrl = String.format(
-            "http://localhost:5173/oauth-success?firstName=%s&lastName=%s&email=%s&role=%s",
+            "http://localhost:5173/oauth-success?firstName=%s&lastName=%s&email=%s&role=%s&accessToken=%s",
             firstName != null ? firstName : "",
             lastName != null ? lastName : "",
             email != null ? email : "",
-            role
+            role,
+            accessToken
         );
 
         response.sendRedirect(redirectUrl);
