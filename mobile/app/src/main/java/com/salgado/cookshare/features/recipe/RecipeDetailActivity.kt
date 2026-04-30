@@ -1,0 +1,442 @@
+package com.salgado.cookshare.features.recipe
+
+import android.content.SharedPreferences
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.*
+import androidx.appcompat.widget.Toolbar
+import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.google.gson.Gson
+import com.salgado.cookshare.R
+import com.salgado.cookshare.features.shared.RetrofitClient
+import com.salgado.cookshare.features.shared.CommentItem
+import com.salgado.cookshare.features.shared.CommentRequest
+import com.salgado.cookshare.features.shared.DbRecipe
+import com.salgado.cookshare.features.shared.FavoriteCheckResponse
+import com.salgado.cookshare.features.shared.FavoriteItem
+import com.salgado.cookshare.features.shared.FavoriteRequest
+import com.salgado.cookshare.features.shared.LoginResponse
+import com.salgado.cookshare.features.shared.MyRatingResponse
+import com.salgado.cookshare.features.shared.NutritionResponse
+import com.salgado.cookshare.features.shared.RateRequest
+
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+class RecipeDetailActivity : AppCompatActivity() {
+
+    private lateinit var ivRecipeImage: ImageView
+    private lateinit var tvTitle: TextView
+    private lateinit var tvDifficulty: TextView
+    private lateinit var tvDescription: TextView
+    private lateinit var tvPrepTime: TextView
+    private lateinit var tvCookTime: TextView
+    private lateinit var tvServings: TextView
+    private lateinit var tvRating: TextView
+    private lateinit var tagsContainer: LinearLayout
+    private lateinit var ingredientsContainer: LinearLayout
+    private lateinit var instructionsContainer: LinearLayout
+    private lateinit var starsContainer: LinearLayout
+    private lateinit var tvRatedMessage: TextView
+    private lateinit var tvCommentsTitle: TextView
+    private lateinit var etComment: EditText
+    private lateinit var btnPostComment: Button
+    private lateinit var commentsContainer: LinearLayout
+    private lateinit var tvAuthor: TextView
+    private lateinit var toolbar: Toolbar
+    private lateinit var btnFavorite: ImageView
+
+    // ── Nutrition views ───────────────────────────────────────────────────────
+    private lateinit var nutritionSection: LinearLayout
+    private lateinit var tvCalories: TextView
+    private lateinit var tvProtein: TextView
+    private lateinit var tvCarbs: TextView
+    private lateinit var tvFat: TextView
+    private lateinit var tvFiber: TextView
+
+    private var userRating = 0
+    private var hasRated = false
+    private var isFavorited = false
+    private var recipeId = ""
+    private var liveRating = 0.0
+    private var liveReviewCount = 0
+    private lateinit var prefs: SharedPreferences
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_recipe_detail)
+        initViews()
+        setupToolbar()
+        loadRecipeData()
+        setupStars()
+        checkMyRating()
+        setupComments()
+        loadComments()
+        loadFavoriteStatus()
+        loadNutrition()  // ← NEW
+    }
+
+    private fun initViews() {
+        ivRecipeImage         = findViewById(R.id.ivRecipeImage)
+        tvTitle               = findViewById(R.id.tvTitle)
+        tvDifficulty          = findViewById(R.id.tvDifficulty)
+        tvDescription         = findViewById(R.id.tvDescription)
+        tvPrepTime            = findViewById(R.id.tvPrepTime)
+        tvCookTime            = findViewById(R.id.tvCookTime)
+        tvServings            = findViewById(R.id.tvServings)
+        tvRating              = findViewById(R.id.tvRating)
+        tagsContainer         = findViewById(R.id.tagsContainer)
+        ingredientsContainer  = findViewById(R.id.ingredientsContainer)
+        instructionsContainer = findViewById(R.id.instructionsContainer)
+        starsContainer        = findViewById(R.id.starsContainer)
+        tvRatedMessage        = findViewById(R.id.tvRatedMessage)
+        tvCommentsTitle       = findViewById(R.id.tvCommentsTitle)
+        etComment             = findViewById(R.id.etComment)
+        btnPostComment        = findViewById(R.id.btnPostComment)
+        commentsContainer     = findViewById(R.id.commentsContainer)
+        tvAuthor              = findViewById(R.id.tvAuthor)
+        toolbar               = findViewById(R.id.toolbar)
+        btnFavorite           = findViewById(R.id.btnFavorite)
+
+        // ── Nutrition views ───────────────────────────────────────────────────
+        nutritionSection      = findViewById(R.id.nutritionSection)
+        tvCalories            = findViewById(R.id.tvCalories)
+        tvProtein             = findViewById(R.id.tvProtein)
+        tvCarbs               = findViewById(R.id.tvCarbs)
+        tvFat                 = findViewById(R.id.tvFat)
+        tvFiber               = findViewById(R.id.tvFiber)
+
+        prefs = getSharedPreferences("cookshare_prefs", MODE_PRIVATE)
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = ""
+        toolbar.setNavigationOnClickListener { finish() }
+    }
+
+    private fun getToken(): String = "Bearer ${prefs.getString("access_token", "")}"
+
+    private fun loadRecipeData() {
+        recipeId        = intent.getStringExtra("recipe_id") ?: ""
+        val title       = intent.getStringExtra("recipe_title") ?: "Recipe"
+        val imageUrl    = intent.getStringExtra("recipe_image") ?: ""
+        val description = intent.getStringExtra("recipe_description") ?: ""
+        val difficulty  = intent.getStringExtra("recipe_difficulty") ?: "Easy"
+        val prepTime    = intent.getStringExtra("recipe_prep_time") ?: "N/A"
+        val cookTime    = intent.getStringExtra("recipe_cook_time") ?: "N/A"
+        val servings    = intent.getIntExtra("recipe_servings", 4)
+        val rating      = intent.getDoubleExtra("recipe_rating", 0.0)
+        val reviewCount = intent.getIntExtra("recipe_review_count", 0)
+        val author      = intent.getStringExtra("recipe_author") ?: "Spoonacular"
+        val tags        = intent.getStringArrayListExtra("recipe_tags") ?: arrayListOf()
+        val ingredients = intent.getStringArrayListExtra("recipe_ingredients") ?: arrayListOf()
+        val instructions = intent.getStringArrayListExtra("recipe_instructions") ?: arrayListOf()
+
+        liveRating = rating
+        liveReviewCount = reviewCount
+
+        Glide.with(this).load(imageUrl).centerCrop()
+            .placeholder(R.drawable.ic_chef_hat).into(ivRecipeImage)
+
+        tvTitle.text       = title
+        tvDescription.text = description
+        tvPrepTime.text    = prepTime
+        tvCookTime.text    = cookTime
+        tvServings.text    = servings.toString()
+        updateRatingDisplay()
+        tvAuthor.text = "Recipe by $author  •  $reviewCount likes"
+
+        tvDifficulty.text = difficulty
+        when (difficulty) {
+            "Easy"   -> { tvDifficulty.setTextColor(0xFF15803D.toInt()); tvDifficulty.setBackgroundResource(R.drawable.bg_badge_easy) }
+            "Medium" -> { tvDifficulty.setTextColor(0xFFA16207.toInt()); tvDifficulty.setBackgroundResource(R.drawable.bg_badge_medium) }
+            "Hard"   -> { tvDifficulty.setTextColor(0xFFB91C1C.toInt()); tvDifficulty.setBackgroundResource(R.drawable.bg_badge_hard) }
+        }
+
+        tagsContainer.removeAllViews()
+        tags.take(4).forEach { tag ->
+            val tv = TextView(this).apply {
+                text = tag; textSize = 12f
+                setTextColor(0xFF6B7280.toInt())
+                setBackgroundResource(R.drawable.bg_tag)
+                setPadding(24, 8, 24, 8)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).also { it.marginEnd = 8 }
+            }
+            tagsContainer.addView(tv)
+        }
+
+        ingredientsContainer.removeAllViews()
+        if (ingredients.isEmpty()) addEmptyState(ingredientsContainer, "No ingredients listed.")
+        else ingredients.forEach { ing ->
+            val v = LayoutInflater.from(this).inflate(R.layout.item_ingredient, ingredientsContainer, false)
+            v.findViewById<TextView>(R.id.tvIngredient).text = ing
+            ingredientsContainer.addView(v)
+        }
+
+        instructionsContainer.removeAllViews()
+        if (instructions.isEmpty()) addEmptyState(instructionsContainer, "No instructions available.")
+        else instructions.forEachIndexed { i, step ->
+            val v = LayoutInflater.from(this).inflate(R.layout.item_instruction, instructionsContainer, false)
+            v.findViewById<TextView>(R.id.tvStepNumber).text = (i + 1).toString()
+            v.findViewById<TextView>(R.id.tvStepText).text = step
+            instructionsContainer.addView(v)
+        }
+
+        btnFavorite.setOnClickListener { toggleFavorite() }
+    }
+
+    // ── Nutrition ──────────────────────────────────────────────────────────────
+    private fun loadNutrition() {
+        if (recipeId.isEmpty()) return
+        RetrofitClient.instance.getNutrition(recipeId)
+            .enqueue(object : Callback<NutritionResponse> {
+                override fun onResponse(
+                    call: Call<NutritionResponse>,
+                    response: Response<NutritionResponse>
+                ) {
+                    val data = response.body() ?: return
+                    if (data.calories > 0 || data.protein > 0) {
+                        runOnUiThread {
+                            nutritionSection.visibility = View.VISIBLE
+                            tvCalories.text = "${data.calories.toInt()}\nkcal"
+                            tvProtein.text  = "${"%.1f".format(data.protein)}g\nProtein"
+                            tvCarbs.text    = "${"%.1f".format(data.carbs)}g\nCarbs"
+                            tvFat.text      = "${"%.1f".format(data.fat)}g\nFat"
+                            tvFiber.text    = "${"%.1f".format(data.fiber)}g\nFiber"
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<NutritionResponse>, t: Throwable) {}
+            })
+    }
+
+    // ── Rating ─────────────────────────────────────────────────────────────────
+
+    private fun updateRatingDisplay() {
+        tvRating.text = String.format("%.1f", liveRating)
+    }
+
+    private fun setupStars() {
+        starsContainer.removeAllViews()
+        for (i in 1..5) {
+            val star = ImageView(this).apply {
+                setImageResource(R.drawable.ic_star)
+                layoutParams = LinearLayout.LayoutParams(40, 40).also { it.marginEnd = 8 }
+                setColorFilter(0xFFD1D5DB.toInt())
+                setOnClickListener { if (!hasRated) onStarClicked(i) }
+            }
+            starsContainer.addView(star)
+        }
+    }
+
+    private fun checkMyRating() {
+        val user = getUser() ?: return
+        val email = user.email ?: return
+
+        RetrofitClient.instance.getMyRating(recipeId, email)
+            .enqueue(object : Callback<MyRatingResponse> {
+                override fun onResponse(
+                    call: Call<MyRatingResponse>,
+                    response: Response<MyRatingResponse>
+                ) {
+                    val body = response.body() ?: return
+                    if (body.rated) {
+                        hasRated = true
+                        userRating = body.stars
+                        runOnUiThread {
+                            for (i in 0 until starsContainer.childCount) {
+                                val star = starsContainer.getChildAt(i) as ImageView
+                                star.setColorFilter(
+                                    if (i < body.stars) 0xFFF97316.toInt()
+                                    else 0xFFD1D5DB.toInt()
+                                )
+                            }
+                            starsContainer.visibility = View.GONE
+                            tvRatedMessage.visibility = View.VISIBLE
+                            tvRatedMessage.text =
+                                "You rated this recipe ${body.stars} star${if (body.stars > 1) "s" else ""}! Thank you."
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<MyRatingResponse>, t: Throwable) {}
+            })
+    }
+
+    private fun onStarClicked(rating: Int) {
+        if (hasRated) return
+        userRating = rating
+        hasRated = true
+
+        for (i in 0 until starsContainer.childCount) {
+            val star = starsContainer.getChildAt(i) as ImageView
+            star.setColorFilter(if (i < rating) 0xFFF97316.toInt() else 0xFFD1D5DB.toInt())
+        }
+
+        starsContainer.visibility = View.GONE
+        tvRatedMessage.visibility = View.VISIBLE
+        tvRatedMessage.text = "You rated this recipe $rating star${if (rating > 1) "s" else ""}! Thank you."
+
+        val userEmail = getUser()?.email ?: ""
+        val token = getToken()
+        RetrofitClient.instance.rateRecipe(token, recipeId, RateRequest(rating, userEmail))
+            .enqueue(object : Callback<DbRecipe> {
+                override fun onResponse(call: Call<DbRecipe>, response: Response<DbRecipe>) {
+                    if (response.isSuccessful) {
+                        response.body()?.let {
+                            liveRating = it.rating
+                            liveReviewCount = it.reviewCount
+                            runOnUiThread { updateRatingDisplay() }
+                        }
+                    } else if (response.code() == 409) {
+                        runOnUiThread {
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "You have already rated this recipe", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<DbRecipe>, t: Throwable) {
+                    Toast.makeText(this@RecipeDetailActivity,
+                        "Rating failed: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
+
+    // ── Favorites ──────────────────────────────────────────────────────────────
+
+    private fun loadFavoriteStatus() {
+        val user = getUser() ?: return
+        RetrofitClient.instance.checkFavorite(user.email ?: "", recipeId)
+            .enqueue(object : Callback<FavoriteCheckResponse> {
+                override fun onResponse(call: Call<FavoriteCheckResponse>, response: Response<FavoriteCheckResponse>) {
+                    isFavorited = response.body()?.favorited ?: false
+                    runOnUiThread { updateFavoriteIcon() }
+                }
+                override fun onFailure(call: Call<FavoriteCheckResponse>, t: Throwable) {}
+            })
+    }
+
+    private fun toggleFavorite() {
+        val user  = getUser() ?: return
+        val email = user.email ?: return
+        val token = getToken()
+
+        if (isFavorited) {
+            RetrofitClient.instance.removeFavorite(token, email, recipeId)
+                .enqueue(object : Callback<String> {
+                    override fun onResponse(call: Call<String>, response: Response<String>) {
+                        isFavorited = false
+                        runOnUiThread {
+                            updateFavoriteIcon()
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "Removed from favorites", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    override fun onFailure(call: Call<String>, t: Throwable) {}
+                })
+        } else {
+            val title = intent.getStringExtra("recipe_title") ?: ""
+            val image = intent.getStringExtra("recipe_image") ?: ""
+            RetrofitClient.instance.addFavorite(token, FavoriteRequest(email, recipeId, title, image))
+                .enqueue(object : Callback<FavoriteItem> {
+                    override fun onResponse(call: Call<FavoriteItem>, response: Response<FavoriteItem>) {
+                        isFavorited = true
+                        runOnUiThread {
+                            updateFavoriteIcon()
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "Added to favorites!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    override fun onFailure(call: Call<FavoriteItem>, t: Throwable) {}
+                })
+        }
+    }
+
+    private fun updateFavoriteIcon() {
+        btnFavorite.setColorFilter(
+            if (isFavorited) 0xFFF97316.toInt() else 0xFF9CA3AF.toInt()
+        )
+    }
+
+    // ── Comments ───────────────────────────────────────────────────────────────
+
+    private fun loadComments() {
+        RetrofitClient.instance.getComments(recipeId)
+            .enqueue(object : Callback<List<CommentItem>> {
+                override fun onResponse(call: Call<List<CommentItem>>, response: Response<List<CommentItem>>) {
+                    val items = response.body() ?: emptyList()
+                    runOnUiThread { renderComments(items) }
+                }
+                override fun onFailure(call: Call<List<CommentItem>>, t: Throwable) {}
+            })
+    }
+
+    private fun setupComments() {
+        btnPostComment.setOnClickListener {
+            val text = etComment.text.toString().trim()
+            if (text.isEmpty()) {
+                Toast.makeText(this, "Please write a comment first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val user       = getUser()
+            val authorName = if (user != null) "${user.firstName} ${user.lastName}" else "Anonymous"
+            val email      = user?.email ?: ""
+            val token      = getToken()
+
+            btnPostComment.isEnabled = false
+            RetrofitClient.instance.postComment(token, CommentRequest(email, authorName, recipeId, text))
+                .enqueue(object : Callback<CommentItem> {
+                    override fun onResponse(call: Call<CommentItem>, response: Response<CommentItem>) {
+                        btnPostComment.isEnabled = true
+                        if (response.isSuccessful) {
+                            etComment.setText("")
+                            loadComments()
+                        } else {
+                            Toast.makeText(this@RecipeDetailActivity,
+                                "Failed to post comment", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    override fun onFailure(call: Call<CommentItem>, t: Throwable) {
+                        btnPostComment.isEnabled = true
+                        Toast.makeText(this@RecipeDetailActivity,
+                            "Network error: ${t.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
+        }
+    }
+
+    private fun renderComments(items: List<CommentItem>) {
+        commentsContainer.removeAllViews()
+        tvCommentsTitle.text = "Comments (${items.size})"
+        items.forEach { c ->
+            val v = LayoutInflater.from(this).inflate(R.layout.item_comment, commentsContainer, false)
+            v.findViewById<TextView>(R.id.tvCommentAuthor).text = c.authorName
+            v.findViewById<TextView>(R.id.tvCommentText).text = c.text
+            v.findViewById<TextView>(R.id.tvCommentDate).text =
+                c.createdAt?.let {
+                    try { it.substring(0, 10) } catch (e: Exception) { "Just now" }
+                } ?: "Just now"
+            commentsContainer.addView(v)
+        }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private fun getUser(): LoginResponse? {
+        val data = prefs.getString("user_data", null) ?: return null
+        return Gson().fromJson(data, LoginResponse::class.java)
+    }
+
+    private fun addEmptyState(container: LinearLayout, message: String) {
+        container.addView(TextView(this).apply {
+            text = message; textSize = 14f; setTextColor(0xFF9CA3AF.toInt())
+        })
+    }
+}
