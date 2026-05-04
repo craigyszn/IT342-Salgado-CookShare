@@ -92,7 +92,7 @@ const NutritionBadge = ({ recipeId }: { recipeId: string }) => {
   const [calories, setCalories] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(`http://localhost:8081/api/recipes/${recipeId}/nutrition`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/nutrition`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => { if (data?.calories > 0) setCalories(Math.round(data.calories)); })
       .catch(() => {});
@@ -161,7 +161,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(true);
+
   const [nutrition, setNutrition] = useState<NutritionData | null>(null);
 
   const user = authService.getUser();
@@ -171,7 +171,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
     const load = async () => {
       // Load comments
       try {
-        const res = await fetch(`http://localhost:8081/api/comments?recipeId=${recipeId}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comments?recipeId=${recipeId}`);
         if (res.ok) {
           const data = await res.json();
           const mapped: Comment[] = data.map((c: any) => ({
@@ -186,7 +186,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
       // ── Load nutrition ────────────────────────────────────────────────────
       try {
-        const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}/nutrition`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/nutrition`);
         if (res.ok) {
           const data = await res.json();
           if (data.calories > 0 || data.protein > 0) setNutrition(data);
@@ -197,7 +197,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         // Check favorites
         try {
           const res = await fetch(
-            `http://localhost:8081/api/favorites/check?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`
+            `${import.meta.env.VITE_API_URL}/api/favorites/check?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`
           );
           if (res.ok) {
             const data = await res.json();
@@ -208,7 +208,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         // Check if user already rated
         try {
           const res = await fetch(
-            `http://localhost:8081/api/recipes/${recipeId}/my-rating?email=${encodeURIComponent(user.email)}`
+            `${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/my-rating?email=${encodeURIComponent(user.email)}`
           );
           if (res.ok) {
             const data = await res.json();
@@ -229,12 +229,12 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
     if (!user?.email) return;
     if (isFavorited) {
       await fetch(
-        `http://localhost:8081/api/favorites?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`,
+        `${import.meta.env.VITE_API_URL}/api/favorites?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`,
         { method: 'DELETE' }
       );
       setIsFavorited(false);
     } else {
-      await fetch('http://localhost:8081/api/favorites', {
+      await fetch('${import.meta.env.VITE_API_URL}/api/favorites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -252,7 +252,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
     if (!commentText.trim()) return;
     const authorName = user ? `${user.firstName} ${user.lastName}` : 'Anonymous';
     try {
-      const res = await fetch('http://localhost:8081/api/comments', {
+      const res = await fetch('${import.meta.env.VITE_API_URL}/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -422,7 +422,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
                     setUserRating(star);
                     setHasRated(true);
                     try {
-                      const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}/rate`, {
+                      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/rate`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ stars: star, userEmail: user?.email ?? '' }),
@@ -524,7 +524,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user?.email) return;
-    fetch(`http://localhost:8081/api/users/profile?email=${encodeURIComponent(user.email)}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/users/profile?email=${encodeURIComponent(user.email)}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data?.profilePhotoUrl) {
@@ -540,7 +540,7 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:8081/api/users/count')
+    fetch('${import.meta.env.VITE_API_URL}/api/users/count')
       .then((res) => res.json())
       .then((data) => setUserCount(String(data.count)))
       .catch(() => setUserCount('—'));
@@ -553,7 +553,7 @@ const Dashboard = () => {
 
   const fetchDbRecipes = async (): Promise<Recipe[]> => {
     try {
-      const res = await fetch('http://localhost:8081/api/recipes');
+      const res = await fetch('${import.meta.env.VITE_API_URL}/api/recipes');
       if (!res.ok) return [];
       const data = await res.json();
       return data.map(mapDbRecipe);
