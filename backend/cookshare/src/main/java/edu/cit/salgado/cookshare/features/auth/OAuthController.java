@@ -27,9 +27,13 @@ public class OAuthController {
     @GetMapping("/login-success")
     public void loginSuccess(Authentication authentication, HttpServletResponse response) throws IOException {
 
+        String frontendUrl = System.getenv("FRONTEND_URL") != null
+            ? System.getenv("FRONTEND_URL")
+            : "http://localhost:5173";
+
         // Guard: if authentication is null or not OAuth2, redirect to login
         if (authentication == null || !(authentication.getPrincipal() instanceof OAuth2User)) {
-            response.sendRedirect("http://localhost:5173/login");
+            response.sendRedirect(frontendUrl + "/login");
             return;
         }
 
@@ -60,7 +64,8 @@ public class OAuthController {
 
         // Pass user data + role + token to frontend via URL params
         String redirectUrl = String.format(
-            "http://localhost:5173/oauth-success?firstName=%s&lastName=%s&email=%s&role=%s&accessToken=%s",
+            "%s/oauth-success?firstName=%s&lastName=%s&email=%s&role=%s&accessToken=%s",
+            frontendUrl,
             firstName != null ? firstName : "",
             lastName != null ? lastName : "",
             email != null ? email : "",

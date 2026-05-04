@@ -14,8 +14,11 @@ public class CorsConfig {
 
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")  // ← changed from /api/** to /**
-                        .allowedOrigins("http://localhost:5173")
+                registry.addMapping("/**")
+                        .allowedOrigins(
+                            "http://localhost:5173",
+                            "https://cookshare-web.onrender.com"
+                        )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
                         .exposedHeaders("Authorization")
