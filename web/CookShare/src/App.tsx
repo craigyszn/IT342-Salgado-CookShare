@@ -1,14 +1,14 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import CreateRecipe from './pages/CreateRecipe';
-import Profile from './pages/Profile';
+import Landing from './features/landing/Landing';
+import Login from './features/auth/Login';
+import Register from './features/auth/Register';
+import Dashboard from './features/dashboard/Dashboard';
+import CreateRecipe from './features/recipe/CreateRecipe';
+import Profile from './features/profile/Profile';
+import OAuthSuccess from './features/auth/OAuthSuccessPage';
+import AdminPage from './features/admin/AdminPage';
 import './App.css';
-import OAuthSuccess from './pages/OAuthSuccessPage';
-import AdminPage from './pages/AdminPage';
-
+ 
 function App() {
   return (
     <Router>
@@ -21,10 +21,9 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/admin" element={<AdminPage />} />
-
       </Routes>
     </Router>
   );
 }
-
+ 
 export default App;
