@@ -4,6 +4,8 @@ import { ChefHat, ArrowLeft, User, Mail, Save, Clock, UtensilsCrossed, Trash2, I
 import { authService } from '../auth/authService';
 import './Profile.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type ActiveTab = 'profile' | 'recipes';
 
@@ -44,7 +46,7 @@ export function Profile() {
   useEffect(() => {
     const user = authService.getUser();
     if (user?.email) {
-      fetch(`${import.meta.env.VITE_API_URL}/api/users/stats?email=${encodeURIComponent(user.email)}`)
+      fetch(`${API_BASE_URL}/api/users/stats?email=${encodeURIComponent(user.email)}`)
         .then((res) => res.json())
         .then((data) => setStats(data))
         .catch(() => {});
@@ -60,11 +62,10 @@ export function Profile() {
     setAvatarUrl(user.avatarUrl || '');
   }, [navigate]);
 
-  // ── Load profile fields from backend on mount ─────────────────────────────
   useEffect(() => {
     const user = authService.getUser();
     if (!user?.email) return;
-    fetch(`${import.meta.env.VITE_API_URL}/api/users/profile?email=${encodeURIComponent(user.email)}`)
+    fetch(`${API_BASE_URL}/api/users/profile?email=${encodeURIComponent(user.email)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.bio) setBio(data.bio);
@@ -75,11 +76,10 @@ export function Profile() {
       .catch(() => {});
   }, []);
 
-  // ── Fetch profile photo from backend on load ──────────────────────────────
   useEffect(() => {
     const user = authService.getUser();
     if (!user?.email) return;
-    fetch(`${import.meta.env.VITE_API_URL}/api/users/profile-photo?email=${encodeURIComponent(user.email)}`)
+    fetch(`${API_BASE_URL}/api/users/profile-photo?email=${encodeURIComponent(user.email)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.profilePhotoUrl) setAvatarUrl(data.profilePhotoUrl);
@@ -92,7 +92,7 @@ export function Profile() {
     const user = authService.getUser();
     if (!user?.email) return;
     setRecipesLoading(true);
-    fetch(`${import.meta.env.VITE_API_URL}/api/recipes/user?email=${encodeURIComponent(user.email)}`)
+    fetch(`${API_BASE_URL}/api/recipes/user?email=${encodeURIComponent(user.email)}`)
       .then((res) => res.json())
       .then((data) => setMyRecipes(data))
       .catch(() => setMyRecipes([]))
@@ -110,7 +110,6 @@ export function Profile() {
     return (f + l) || 'U';
   };
 
-  // ── Avatar Upload ──────────────────────────────────────────────────────────
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -126,7 +125,7 @@ export function Profile() {
       formData.append('file', file);
       formData.append('email', user.email);
 
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/users/upload-profile-photo', {
+      const response = await fetch(`${API_BASE_URL}/api/users/upload-profile-photo`, {
         method: 'POST',
         body: formData,
       });
@@ -148,7 +147,6 @@ export function Profile() {
     }
   };
 
-  // ── Save profile to backend ───────────────────────────────────────────────
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const user = authService.getUser();
@@ -156,7 +154,7 @@ export function Profile() {
 
     setSaving(true);
     try {
-      const res = await fetch('${import.meta.env.VITE_API_URL}/api/users/update-profile', {
+      const res = await fetch(`${API_BASE_URL}/api/users/update-profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,7 +167,6 @@ export function Profile() {
 
       if (!res.ok) throw new Error('Failed to save');
 
-      // Also update localStorage
       const updated = { ...user, email, bio, location, favoriteFood, avatarUrl };
       localStorage.setItem('user', JSON.stringify(updated));
 
@@ -184,7 +181,7 @@ export function Profile() {
   const handleDeleteRecipe = async (id: string) => {
     if (!confirm('Are you sure you want to delete this recipe?')) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recipes/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE_URL}/api/recipes/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setMyRecipes(myRecipes.filter((r) => r.id !== id));
         setStats((prev) => ({ ...prev, recipesShared: prev.recipesShared - 1 }));
@@ -232,7 +229,6 @@ export function Profile() {
         </div>
 
         <div className="profile-grid">
-          {/* Left — Avatar + Stats */}
           <div className="profile-section profile-avatar-col">
             <p className="profile-section__title">Profile Picture</p>
             <p className="profile-section__subtitle">Your public avatar</p>
@@ -281,7 +277,6 @@ export function Profile() {
             </div>
           </div>
 
-          {/* Right — Tabs */}
           <div className="profile-section">
             <div className="profile-tabs">
               <button

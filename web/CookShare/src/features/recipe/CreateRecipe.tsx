@@ -4,6 +4,8 @@ import { ChefHat, ArrowLeft, Plus, X, Save, Image as ImageIcon } from 'lucide-re
 import { authService } from '../auth/authService';
 import './CreateRecipe.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 
 export function CreateRecipe() {
@@ -39,13 +41,10 @@ export function CreateRecipe() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ── Image Upload ───────────────────────────────────────────────────────────
-
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show local preview immediately
     setImagePreview(URL.createObjectURL(file));
     setImageUploading(true);
 
@@ -53,7 +52,7 @@ export function CreateRecipe() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/recipes/upload-image', {
+      const response = await fetch(`${API_BASE_URL}/api/recipes/upload-image`, {
         method: 'POST',
         body: formData,
       });
@@ -71,8 +70,6 @@ export function CreateRecipe() {
     }
   };
 
-  // ── Tag handlers ───────────────────────────────────────────────────────────
-
   const addTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
@@ -82,8 +79,6 @@ export function CreateRecipe() {
 
   const removeTag = (tag: string) => setTags(tags.filter((t) => t !== tag));
 
-  // ── Ingredient handlers ────────────────────────────────────────────────────
-
   const addIngredient = () => setIngredients([...ingredients, '']);
   const removeIngredient = (i: number) => setIngredients(ingredients.filter((_, idx) => idx !== i));
   const updateIngredient = (i: number, value: string) => {
@@ -92,8 +87,6 @@ export function CreateRecipe() {
     setIngredients(updated);
   };
 
-  // ── Instruction handlers ───────────────────────────────────────────────────
-
   const addInstruction = () => setInstructions([...instructions, '']);
   const removeInstruction = (i: number) => setInstructions(instructions.filter((_, idx) => idx !== i));
   const updateInstruction = (i: number, value: string) => {
@@ -101,8 +94,6 @@ export function CreateRecipe() {
     updated[i] = value;
     setInstructions(updated);
   };
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,7 +132,7 @@ export function CreateRecipe() {
     };
 
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/recipes', {
+      const response = await fetch(`${API_BASE_URL}/api/recipes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRecipe),
@@ -155,8 +146,6 @@ export function CreateRecipe() {
       showToast('Failed to save recipe. Please try again.', 'error');
     }
   };
-
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="create-root">
@@ -187,7 +176,6 @@ export function CreateRecipe() {
 
         <form onSubmit={handleSubmit}>
 
-          {/* Basic Information */}
           <div className="create-section">
             <p className="create-section__title">Basic Information</p>
             <p className="create-section__subtitle">Tell us about your recipe</p>
@@ -216,14 +204,12 @@ export function CreateRecipe() {
               />
             </div>
 
-            {/* ── Image Upload ── */}
             <div className="create-field">
               <label className="create-label">
                 <ImageIcon size={16} />
                 Recipe Image
               </label>
 
-              {/* Preview */}
               {imagePreview && (
                 <div className="create-image-preview">
                   <img src={imagePreview} alt="Recipe preview" />
@@ -254,7 +240,6 @@ export function CreateRecipe() {
             </div>
           </div>
 
-          {/* Recipe Details */}
           <div className="create-section">
             <p className="create-section__title">Recipe Details</p>
             <p className="create-section__subtitle">Time, servings, and difficulty</p>
@@ -363,7 +348,6 @@ export function CreateRecipe() {
             </div>
           </div>
 
-          {/* Ingredients */}
           <div className="create-section">
             <p className="create-section__title">Ingredients</p>
             <p className="create-section__subtitle">List all the ingredients needed</p>
@@ -390,7 +374,6 @@ export function CreateRecipe() {
             </button>
           </div>
 
-          {/* Instructions */}
           <div className="create-section">
             <p className="create-section__title">Instructions</p>
             <p className="create-section__subtitle">Step-by-step cooking instructions</p>
@@ -418,7 +401,6 @@ export function CreateRecipe() {
             </button>
           </div>
 
-          {/* Actions */}
           <div className="create-actions">
             <button type="button" className="create-actions__cancel" onClick={() => navigate('/dashboard')}>
               Cancel

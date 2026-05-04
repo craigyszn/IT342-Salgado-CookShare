@@ -16,6 +16,8 @@ import {
 } from '../recipe/spoonacularService';
 import './Dashboard.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+
 const CATEGORIES = ['All', 'Pasta', 'Dessert', 'Salad', 'Main Course', 'Asian', 'Pizza'];
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -27,7 +29,6 @@ const CATEGORY_MAP: Record<string, string> = {
   Pizza: 'pizza',
 };
 
-// ── Nutrition type ────────────────────────────────────────────────────────────
 interface NutritionData {
   calories: number;
   protein: number;
@@ -87,12 +88,11 @@ const DifficultyBadge = ({ difficulty }: { difficulty: Difficulty }) => {
   return <span className={classMap[difficulty]}>{difficulty}</span>;
 };
 
-// ── Nutrition Badge (shown on card) ───────────────────────────────────────────
 const NutritionBadge = ({ recipeId }: { recipeId: string }) => {
   const [calories, setCalories] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/nutrition`)
+    fetch(`${API_BASE_URL}/api/recipes/${recipeId}/nutrition`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => { if (data?.calories > 0) setCalories(Math.round(data.calories)); })
       .catch(() => {});
@@ -135,7 +135,6 @@ const RecipeCard = ({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
           <span>{recipe.cookTime}</span>
         </div>
       </div>
-      {/* ── Nutrition badge ── */}
       <div className="recipe-card__nutrition">
         <NutritionBadge recipeId={String(recipe.id)} />
       </div>
@@ -150,8 +149,6 @@ const RecipeCard = ({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
   </div>
 );
 
-// ── Recipe Modal ──────────────────────────────────────────────────────────────
-
 const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) => {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -161,7 +158,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
   const [isFavorited, setIsFavorited] = useState(false);
-
   const [nutrition, setNutrition] = useState<NutritionData | null>(null);
 
   const user = authService.getUser();
@@ -169,9 +165,8 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
   useEffect(() => {
     const load = async () => {
-      // Load comments
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comments?recipeId=${recipeId}`);
+        const res = await fetch(`${API_BASE_URL}/api/comments?recipeId=${recipeId}`);
         if (res.ok) {
           const data = await res.json();
           const mapped: Comment[] = data.map((c: any) => ({
@@ -182,33 +177,30 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
           }));
           setComments(mapped);
         }
-      } catch { /* ignore */ }
+      } catch { }
 
-      // ── Load nutrition ────────────────────────────────────────────────────
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/nutrition`);
+        const res = await fetch(`${API_BASE_URL}/api/recipes/${recipeId}/nutrition`);
         if (res.ok) {
           const data = await res.json();
           if (data.calories > 0 || data.protein > 0) setNutrition(data);
         }
-      } catch { /* ignore */ }
+      } catch { }
 
       if (user?.email) {
-        // Check favorites
         try {
           const res = await fetch(
-            `${import.meta.env.VITE_API_URL}/api/favorites/check?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`
+            `${API_BASE_URL}/api/favorites/check?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`
           );
           if (res.ok) {
             const data = await res.json();
             setIsFavorited(data.favorited);
           }
-        } catch { /* ignore */ }
+        } catch { }
 
-        // Check if user already rated
         try {
           const res = await fetch(
-            `${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/my-rating?email=${encodeURIComponent(user.email)}`
+            `${API_BASE_URL}/api/recipes/${recipeId}/my-rating?email=${encodeURIComponent(user.email)}`
           );
           if (res.ok) {
             const data = await res.json();
@@ -217,9 +209,8 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
               setUserRating(data.stars);
             }
           }
-        } catch { /* ignore */ }
+        } catch { }
       }
-
     };
     load();
   }, [recipeId]);
@@ -228,12 +219,12 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
     if (!user?.email) return;
     if (isFavorited) {
       await fetch(
-        `${import.meta.env.VITE_API_URL}/api/favorites?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`,
+        `${API_BASE_URL}/api/favorites?email=${encodeURIComponent(user.email)}&recipeId=${recipeId}`,
         { method: 'DELETE' }
       );
       setIsFavorited(false);
     } else {
-      await fetch('${import.meta.env.VITE_API_URL}/api/favorites', {
+      await fetch(`${API_BASE_URL}/api/favorites`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -251,7 +242,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
     if (!commentText.trim()) return;
     const authorName = user ? `${user.firstName} ${user.lastName}` : 'Anonymous';
     try {
-      const res = await fetch('${import.meta.env.VITE_API_URL}/api/comments', {
+      const res = await fetch(`${API_BASE_URL}/api/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -272,7 +263,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         setComments([newComment, ...comments]);
         setCommentText('');
       }
-    } catch { /* ignore */ }
+    } catch { }
   };
 
   return (
@@ -342,7 +333,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
 
           <div className="modal__divider" />
 
-          {/* ── Nutrition Section ── */}
           {nutrition && (
             <>
               <h3 className="modal__section-title">
@@ -421,7 +411,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
                     setUserRating(star);
                     setHasRated(true);
                     try {
-                      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recipes/${recipeId}/rate`, {
+                      const res = await fetch(`${API_BASE_URL}/api/recipes/${recipeId}/rate`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ stars: star, userEmail: user?.email ?? '' }),
@@ -431,7 +421,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
                         setLiveRating(updated.rating);
                         setLiveReviewCount(updated.reviewCount);
                       }
-                    } catch { /* ignore */ }
+                    } catch { }
                   }}
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
@@ -497,8 +487,6 @@ const StatCard = ({ iconClass, icon, value, label }: {
   </div>
 );
 
-// ── Main Dashboard ────────────────────────────────────────────────────────────
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('All');
@@ -518,17 +506,15 @@ const Dashboard = () => {
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'User';
   const email = user?.email ?? '';
 
-  // ── Fetch avatarUrl fresh from backend on mount ───────────────────────────
   const [avatarUrl, setAvatarUrl] = useState(user?.profilePhotoUrl || '');
 
   useEffect(() => {
     if (!user?.email) return;
-    fetch(`${import.meta.env.VITE_API_URL}/api/users/profile?email=${encodeURIComponent(user.email)}`)
+    fetch(`${API_BASE_URL}/api/users/profile?email=${encodeURIComponent(user.email)}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data?.profilePhotoUrl) {
           setAvatarUrl(data.profilePhotoUrl);
-          // Keep localStorage in sync
           const stored = authService.getUser();
           if (stored) {
             localStorage.setItem('user', JSON.stringify({ ...stored, avatarUrl: data.profilePhotoUrl }));
@@ -539,7 +525,7 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetch('${import.meta.env.VITE_API_URL}/api/users/count')
+    fetch(`${API_BASE_URL}/api/users/count`)
       .then((res) => res.json())
       .then((data) => setUserCount(String(data.count)))
       .catch(() => setUserCount('—'));
@@ -552,7 +538,7 @@ const Dashboard = () => {
 
   const fetchDbRecipes = async (): Promise<Recipe[]> => {
     try {
-      const res = await fetch('${import.meta.env.VITE_API_URL}/api/recipes');
+      const res = await fetch(`${API_BASE_URL}/api/recipes`);
       if (!res.ok) return [];
       const data = await res.json();
       return data.map(mapDbRecipe);
