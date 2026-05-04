@@ -53,7 +53,7 @@ export function CreateRecipe() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8081/api/recipes/upload-image', {
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/recipes/upload-image', {
         method: 'POST',
         body: formData,
       });
@@ -141,7 +141,7 @@ export function CreateRecipe() {
     };
 
     try {
-      const response = await fetch('http://localhost:8081/api/recipes', {
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/recipes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRecipe),

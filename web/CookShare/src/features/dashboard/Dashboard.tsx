@@ -220,7 +220,6 @@ const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         } catch { /* ignore */ }
       }
 
-      setLoadingComments(false);
     };
     load();
   }, [recipeId]);

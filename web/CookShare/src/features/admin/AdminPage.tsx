@@ -4,7 +4,7 @@ import { ChefHat, Users, ArrowLeft, Trash2, Edit2, ShieldCheck, ShieldOff, Check
 import { authService } from '../auth/authService';
 import './AdminPage.css';
 
-const API_BASE_URL = 'http://localhost:8081';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
