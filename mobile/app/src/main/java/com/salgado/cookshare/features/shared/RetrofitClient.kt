@@ -8,7 +8,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.0.2.2:8081/"
+    private const val BASE_URL = "https://cookshare-aa1l.onrender.com/"
     private const val SPOONACULAR_BASE_URL = "https://api.spoonacular.com/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -19,7 +19,6 @@ object RetrofitClient {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    // ── Backend API instance ──────────────────────────────────────────────────
     val instance: ApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -30,7 +29,6 @@ object RetrofitClient {
             .create(ApiService::class.java)
     }
 
-    // ── Spoonacular API instance ──────────────────────────────────────────────
     val spoonacular: SpoonacularApiService by lazy {
         Retrofit.Builder()
             .baseUrl(SPOONACULAR_BASE_URL)
